@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
-$stmt = db()->prepare('SELECT s.*, sm.media_path AS thumbnail_path FROM scenes s LEFT JOIN scene_media sm ON sm.scene_id = s.id WHERE s.user_id = ? OR s.is_public = 1 GROUP BY s.id ORDER BY s.created_at DESC');
+$stmt = db()->prepare('SELECT s.*, (SELECT sm.media_path FROM scene_media sm WHERE sm.scene_id = s.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS thumbnail_path FROM scenes s WHERE s.user_id = ? OR s.is_public = 1 ORDER BY s.created_at DESC');
 $stmt->execute([$currentUser['id']]);
 $items = $stmt->fetchAll();
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();

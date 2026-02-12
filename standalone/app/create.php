@@ -26,13 +26,13 @@ $hasApi = (int)($apiRows['c'] ?? 0) > 0;
 $currentUser = current_user();
 $hasActiveAccount = !empty($_SESSION['admin_user_id']) || (($currentUser['status'] ?? '') === 'active');
 $visibilityWhere = !empty($_SESSION['admin_user_id']) ? '1=1' : '(user_id = :user_id OR is_public = 1)';
-$characterStmt = db()->prepare("SELECT c.id, c.name, cm.media_path AS thumbnail_path FROM characters c LEFT JOIN character_media cm ON cm.character_id=c.id WHERE {$visibilityWhere} GROUP BY c.id ORDER BY c.created_at DESC");
+$characterStmt = db()->prepare("SELECT c.id, c.name, (SELECT cm.media_path FROM character_media cm WHERE cm.character_id = c.id ORDER BY cm.created_at DESC, cm.id DESC LIMIT 1) AS thumbnail_path FROM characters c WHERE {$visibilityWhere} ORDER BY c.created_at DESC");
 if (!empty($_SESSION['admin_user_id'])) { $characterStmt->execute(); } else { $characterStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
 $characters = $characterStmt->fetchAll();
-$sceneStmt = db()->prepare("SELECT s.id, s.name, s.type, sm.media_path AS thumbnail_path FROM scenes s LEFT JOIN scene_media sm ON sm.scene_id=s.id WHERE {$visibilityWhere} GROUP BY s.id ORDER BY s.created_at DESC");
+$sceneStmt = db()->prepare("SELECT s.id, s.name, s.type, (SELECT sm.media_path FROM scene_media sm WHERE sm.scene_id = s.id ORDER BY sm.created_at DESC, sm.id DESC LIMIT 1) AS thumbnail_path FROM scenes s WHERE {$visibilityWhere} ORDER BY s.created_at DESC");
 if (!empty($_SESSION['admin_user_id'])) { $sceneStmt->execute(); } else { $sceneStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
 $scenes = $sceneStmt->fetchAll();
-$partStmt = db()->prepare("SELECT p.id, p.name, pm.media_path AS thumbnail_path FROM parts p LEFT JOIN part_media pm ON pm.part_id=p.id WHERE {$visibilityWhere} GROUP BY p.id ORDER BY p.created_at DESC");
+$partStmt = db()->prepare("SELECT p.id, p.name, (SELECT pm.media_path FROM part_media pm WHERE pm.part_id = p.id ORDER BY pm.created_at DESC, pm.id DESC LIMIT 1) AS thumbnail_path FROM parts p WHERE {$visibilityWhere} ORDER BY p.created_at DESC");
 if (!empty($_SESSION['admin_user_id'])) { $partStmt->execute(); } else { $partStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
 $parts = $partStmt->fetchAll();
 } catch (Throwable $e) {

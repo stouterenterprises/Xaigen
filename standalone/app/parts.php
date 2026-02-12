@@ -43,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $items = [];
 try {
-$stmt = db()->prepare('SELECT p.*, pm.media_path AS thumbnail_path, pm.media_type AS thumbnail_type FROM parts p LEFT JOIN part_media pm ON pm.part_id = p.id WHERE p.user_id = ? OR p.is_public = 1 GROUP BY p.id ORDER BY p.created_at DESC');
+$stmt = db()->prepare('SELECT p.*, (SELECT pm.media_path FROM part_media pm WHERE pm.part_id = p.id ORDER BY pm.created_at DESC, pm.id DESC LIMIT 1) AS thumbnail_path, (SELECT pm.media_type FROM part_media pm WHERE pm.part_id = p.id ORDER BY pm.created_at DESC, pm.id DESC LIMIT 1) AS thumbnail_type FROM parts p WHERE p.user_id = ? OR p.is_public = 1 ORDER BY p.created_at DESC');
 $stmt->execute([$currentUser['id']]);
 $items = $stmt->fetchAll();
 } catch (Throwable $e) {

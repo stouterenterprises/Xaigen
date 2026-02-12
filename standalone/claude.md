@@ -66,6 +66,14 @@ Mechanics:
 - Delete action in the key rows is styled as a red destructive button with trash iconography.
 - Multiple active `XAI_API_KEY` entries are selected round-robin.
 
+
+## SQL compatibility guardrails (MySQL `ONLY_FULL_GROUP_BY`)
+- Avoid `GROUP BY <entity_id>` queries that also select non-aggregated columns from joined media tables (`*_media.media_path`, `media_type`, etc.).
+- For thumbnail/preview selection, use a correlated subquery with deterministic ordering instead, for example:
+  - `SELECT ... (SELECT media_path FROM part_media WHERE part_id = p.id ORDER BY created_at DESC, id DESC LIMIT 1) AS thumbnail_path ...`
+- This prevents production failures like: `Expression #N of SELECT list is not in GROUP BY ... incompatible with sql_mode=only_full_group_by`.
+- Apply this pattern across create/gallery/library page queries whenever a single representative media row is needed per parent entity.
+
 ## x.ai integration details
 `lib/xai.php` exposes:
 - `generate_image()`
