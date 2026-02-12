@@ -4,24 +4,31 @@ require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/db.php';
 require_admin();
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = (string) ($_POST['id'] ?? '');
-    $action = (string) ($_POST['action'] ?? '');
-    if ($id !== '' && in_array($action, ['approve', 'reject'], true)) {
-        $status = $action === 'approve' ? 'active' : 'rejected';
-        db()->prepare('UPDATE users SET status=?, reviewed_by_admin_id=?, reviewed_at=?, updated_at=? WHERE id=?')->execute([
-            $status,
-            $_SESSION['admin_user_id'] ?? null,
-            now_utc(),
-            now_utc(),
-            $id,
-        ]);
-    }
-    header('Location: /admin/users.php');
-    exit;
-}
+$errorMessage = '';
+$rows = [];
 
-$rows = db()->query('SELECT * FROM users ORDER BY created_at DESC')->fetchAll();
+try {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $id = (string) ($_POST['id'] ?? '');
+        $action = (string) ($_POST['action'] ?? '');
+        if ($id !== '' && in_array($action, ['approve', 'reject'], true)) {
+            $status = $action === 'approve' ? 'active' : 'rejected';
+            db()->prepare('UPDATE users SET status=?, reviewed_by_admin_id=?, reviewed_at=?, updated_at=? WHERE id=?')->execute([
+                $status,
+                $_SESSION['admin_user_id'] ?? null,
+                now_utc(),
+                now_utc(),
+                $id,
+            ]);
+        }
+        header('Location: /admin/users.php');
+        exit;
+    }
+
+    $rows = db()->query('SELECT * FROM users ORDER BY created_at DESC')->fetchAll();
+} catch (Throwable $e) {
+    $errorMessage = 'Could not load users admin page: ' . $e->getMessage();
+}
 $styleVersion = @filemtime(__DIR__ . '/../app/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 ?>
@@ -38,6 +45,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 <div class="container">
 <h1>Users</h1>
 <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
+<?php if ($errorMessage): ?><div class="banner"><?=htmlspecialchars($errorMessage)?></div><?php endif; ?>
 <?php foreach($rows as $u): ?>
 <div class="card">
   <strong><?=htmlspecialchars((string)$u['full_name'])?> (<?=htmlspecialchars((string)$u['username'])?>)</strong>

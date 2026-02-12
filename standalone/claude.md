@@ -114,6 +114,7 @@ Negative prompt behavior:
 - Generator `/app/create.php` now uses a two-tab switcher (Image/Video) so model selection and prompt drafting stay aligned per generation type; switching tabs preserves separate prompt + negative prompt drafts for each type.
 - `/app/gallery.php` shows recent generations across in-progress and completed states, including status badges.
 - A shared, mobile-responsive global navbar is used on the landing page and app pages (home/generator/gallery/admin links).
+- Public/shared nav now shows **Admin** only when an admin session is active; signed-in admins also get an explicit admin logout link, while non-admin visitors only see **Login**.
 - Shared styling is in `app/assets/css/style.css`; shared UI behaviors (including mobile nav toggle) are in `app/assets/js/app.js`.
 - Public pages append a `?v=<filemtime>` cache-busting query string to shared CSS/JS includes so nav/button UI updates are not blocked by stale browser/CDN caches.
 - Admin pages also use the shared global navbar + shared CSS/JS includes (with `?v=<filemtime>` cache busting) so mobile navigation and visual styling stay consistent across the entire site.
@@ -125,6 +126,8 @@ Negative prompt behavior:
 - Form submit buttons in studio pages use `.form-btn`; global form control width rules intentionally avoid all `<button>` elements so the mobile menu toggle retains intrinsic width.
 - Mobile nav keeps the menu button at intrinsic width and opens a stacked dropdown panel to avoid full-width button overlap and cramped inline link wrapping in portrait layouts.
 - `/app/login.php` is now the single shared login entry for both users and admins; the login form accepts admin usernames and redirects successful admin sign-ins to `/admin/users.php`.
+- `/app/login.php` now wraps sign-in attempts in exception handling and surfaces detailed backend failure messages (for example migration/DB errors) directly in the login banner instead of failing as a blank white page.
+- `/admin/users.php` now catches load/update exceptions and renders a clear on-page admin error banner so post-login failures are diagnosable.
 - The login view links to account requests with a `Create Account` link that opens the create user request form (`/app/login.php?view=register`).
 - Admins review/approve/reject user requests at `/admin/users.php`; admin section link rows now include **Users**.
 - Generation requests now require an active account (`users.status = active`) or an authenticated admin session, and the generator submit button is disabled for non-approved visitors.

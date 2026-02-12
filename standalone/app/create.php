@@ -19,7 +19,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Generation Studio</title><link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>"></head>
 <body>
-<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?><a href="/admin/index.php">Admin</a></div></div></nav>
+<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php elseif(!empty($_SESSION['admin_user_id'])): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?></div></div></nav>
 <div class="container">
 <h1>Image + Video Generation Studio</h1>
 <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
