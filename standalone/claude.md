@@ -87,6 +87,8 @@ Negative prompt behavior:
 - `api/tick.php` now also captures provider-supplied preview/thumbnail URLs while a job is still `running`, so gallery/history/media pages can show early visual progress before final output is ready.
 - `api/tick.php` now persists polling exceptions into `generations.error_message` even while a job remains `running`, and clears stale errors once polling recovers or the job succeeds so stuck "Generating" items surface actionable diagnostics in gallery/history.
 - `api/tick.php` now enforces a hard running-job timeout via `GENERATION_TIMEOUT_SECONDS` (default `3600` = 60 minutes). If exceeded before a final provider result is received, the generation is marked `failed` with a timeout error so jobs cannot stay in "Generating" forever.
+- `api/tick.php` now recognizes additional async job id fields (`jobId`, `external_job_id`, nested `result/job/data` variants) so image/video jobs are not incorrectly failed when providers use non-`id` naming.
+- `api/tick.php` now supports image responses that return `data[0].b64_json` by writing the decoded image into `storage/generated` and marking the generation `succeeded` immediately (no polling job id required).
 - Generator history cards and `/app/gallery.php` render media thumbnails (image/video), make the content area clickable to open media, and provide Download + Delete actions.
 - `/app/gallery.php` now includes in-progress and completed generations with status badges (e.g., Generating, Generated, Failed), and each preview/title links to `/app/media.php?id=<generation-id>` for full-size viewing.
 - `/app/media.php` provides a dedicated full media viewer page (image/video), current generation status, and quick Download/Back actions.
@@ -102,6 +104,7 @@ Negative prompt behavior:
 - **Long-running videos show no visual progress**: previews are sourced from provider preview/thumbnail fields while status is `running`; if you still see placeholders, confirm `/api/tick.php` is being called regularly and that the provider response includes a preview URL.
 - **Items stay in `Generating` with no obvious reason**: check gallery/history cards (or `/api/status.php?id=<id>`) for `error_message`; polling/network/provider exceptions are now saved there even before a job is marked failed.
 - **Items stay in `Generating` too long**: ensure `/api/tick.php` is being called; jobs now auto-fail after `GENERATION_TIMEOUT_SECONDS` (default 60 minutes), so set a higher/lower value in config if your provider workloads need a different threshold.
+- **`Running job is missing external_job_id.`**: provider create responses may be sync (`data[0].b64_json`) or async with alternate job id field names; `api/tick.php` now handles both patterns automatically, so this error usually indicates an unexpected provider payload—inspect the raw API response and model endpoint configuration.
 
 ## UI routing and navigation notes
 - Main site entry now serves a marketing landing page at `/index.php` (root path `/`).
