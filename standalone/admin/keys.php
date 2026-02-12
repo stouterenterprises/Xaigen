@@ -5,7 +5,7 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/crypto.php';
 require_admin();
 start_session();
-$revealValue = '';
+$flash = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
@@ -39,26 +39,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($action === 'delete') {
         db()->prepare('DELETE FROM api_keys WHERE id=?')->execute([$_POST['id']]);
+        header('Location: /admin/keys.php?status=deleted');
+        exit;
     }
-    if ($action === 'reveal') {
-        $u = db()->prepare('SELECT password_hash FROM admin_users WHERE id=? LIMIT 1');
-        $u->execute([$_SESSION['admin_user_id']]);
-        $row = $u->fetch();
-        if ($row && password_verify((string)($_POST['admin_password'] ?? ''), $row['password_hash'])) {
-            $k = db()->prepare('SELECT key_value_encrypted FROM api_keys WHERE id=?');
-            $k->execute([$_POST['id']]);
-            $kr = $k->fetch();
-            if ($kr) {
-                $revealValue = decrypt_secret((string)$kr['key_value_encrypted']);
-            }
-        }
+    if ($action === 'save_value') {
+        $enc = encrypt_secret((string)($_POST['key_value'] ?? ''));
+        db()->prepare('UPDATE api_keys SET key_value_encrypted=?, updated_at=? WHERE id=?')->execute([
+            $enc,
+            now_utc(),
+            $_POST['id'],
+        ]);
+        header('Location: /admin/keys.php?status=saved');
+        exit;
     }
-    if ($action !== 'reveal') {
+
+    if ($action !== 'save_value') {
         header('Location: /admin/keys.php');
         exit;
     }
 }
 $rows = db()->query('SELECT * FROM api_keys ORDER BY created_at DESC')->fetchAll();
+$status = $_GET['status'] ?? '';
+if ($status === 'saved') {
+    $flash = 'API key updated successfully.';
+} elseif ($status === 'deleted') {
+    $flash = 'API key removed.';
+}
 $styleVersion = @filemtime(__DIR__ . '/../app/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 ?>
@@ -87,10 +93,11 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
   <div class="container">
     <h1>API Keys</h1>
     <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
-    <?php if ($revealValue !== ''): ?><div class="card">Revealed key value: <code><?=htmlspecialchars($revealValue)?></code></div><?php endif; ?>
+    <?php if ($flash !== ''): ?><div class="card api-keys-flash"><?=htmlspecialchars($flash)?></div><?php endif; ?>
     <div class="card">
       <h3>API Key Actions</h3>
-      <button type="button" id="open-add-key-dialog">Add Key</button>
+      <p class="muted">Manage, rotate, and remove API keys from a single place.</p>
+      <button type="button" id="open-add-key-dialog">+ Add Key</button>
     </div>
 
     <dialog id="add-key-dialog">
@@ -108,7 +115,44 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
         </div>
       </form>
     </dialog>
-    <?php foreach ($rows as $r): ?><div class="card"><strong><?=htmlspecialchars($r['provider'])?> / <?=htmlspecialchars($r['key_name'])?></strong> <?=((int)$r['is_active']) ? '(active)' : '(disabled)'?><br>Value: ************<br><small><?=htmlspecialchars((string)$r['notes'])?></small><form method="post"><input type="hidden" name="action" value="reveal"><input type="hidden" name="id" value="<?=htmlspecialchars($r['id'])?>"><input type="password" name="admin_password" placeholder="Re-enter admin password" required><button type="submit">Reveal</button></form><form method="post" onsubmit="return confirm('Delete key?')"><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?=htmlspecialchars($r['id'])?>"><button type="submit">Delete</button></form></div><?php endforeach; ?>
+    <?php foreach ($rows as $r):
+      $decryptedValue = decrypt_secret((string)$r['key_value_encrypted']);
+      $isActive = (int)$r['is_active'] === 1;
+    ?>
+      <div class="card api-key-card">
+        <div class="api-key-head">
+          <strong><?=htmlspecialchars($r['provider'])?> / <?=htmlspecialchars($r['key_name'])?></strong>
+          <span class="api-key-status <?= $isActive ? 'is-active' : 'is-disabled' ?>"><?= $isActive ? 'Active' : 'Disabled' ?></span>
+        </div>
+        <?php if (!empty($r['notes'])): ?><small class="muted"><?=htmlspecialchars((string)$r['notes'])?></small><?php endif; ?>
+        <form method="post" class="api-key-edit-form">
+          <input type="hidden" name="action" value="save_value">
+          <input type="hidden" name="id" value="<?=htmlspecialchars($r['id'])?>">
+          <label for="key-value-<?=htmlspecialchars($r['id'])?>" class="muted">Key value</label>
+          <div class="api-key-value-row">
+            <input
+              id="key-value-<?=htmlspecialchars($r['id'])?>"
+              name="key_value"
+              class="api-key-value-input"
+              value="<?=htmlspecialchars($decryptedValue)?>"
+              autocomplete="off"
+              required
+            >
+            <button type="submit" class="icon-btn" title="Save key" aria-label="Save key">
+              💾
+            </button>
+            <button type="button" class="icon-btn btn-secondary copy-key-btn" title="Copy key" aria-label="Copy key">
+              📋
+            </button>
+          </div>
+        </form>
+        <form method="post" onsubmit="return confirm('Delete key?')">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="id" value="<?=htmlspecialchars($r['id'])?>">
+          <button type="submit" class="btn-danger">🗑 Delete</button>
+        </form>
+      </div>
+    <?php endforeach; ?>
   </div>
 
   <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
@@ -128,6 +172,26 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 
       closeButton.addEventListener('click', function () {
         dialog.close();
+      });
+
+      document.querySelectorAll('.copy-key-btn').forEach(function (button) {
+        button.addEventListener('click', async function () {
+          const container = button.closest('.api-key-value-row');
+          const input = container ? container.querySelector('input') : null;
+          if (!input) {
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(input.value);
+            button.textContent = '✅';
+            setTimeout(function () {
+              button.textContent = '📋';
+            }, 1200);
+          } catch (error) {
+            input.select();
+            document.execCommand('copy');
+          }
+        });
       });
     })();
   </script>

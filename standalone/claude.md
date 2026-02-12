@@ -60,8 +60,9 @@ Mechanics:
 - Secrets are stored encrypted at rest in `api_keys.key_value_encrypted`.
 - Encryption algorithm: AES-256-GCM.
 - Key source: `ENCRYPTION_KEY` from `config.local.php`.
-- API keys are masked in admin list.
-- Reveal action requires re-entering admin password.
+- Admin API keys page now renders each decrypted key value in an editable field for authenticated admins.
+- Each key row provides inline **Save** and **Copy** actions next to the editable field; the old reveal/password re-check flow was removed.
+- Delete action in the key rows is styled as a red destructive button with trash iconography.
 - Multiple active `XAI_API_KEY` entries are selected round-robin.
 
 ## x.ai integration details

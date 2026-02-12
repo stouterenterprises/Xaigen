@@ -20,6 +20,8 @@ button,.btn{cursor:pointer;background:var(--primary);border:none;color:#fff;padd
 button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .btn-secondary{background:transparent;border:1px solid #475569}
 .btn-secondary:hover{background:#1e293b}
+.btn-danger{background:#b91c1c}
+.btn-danger:hover{background:#991b1b}
 .muted{color:var(--muted)}
 .banner{background:#7c2d12;padding:10px;border-radius:8px;margin-bottom:14px}
 .hero{padding:40px 0 10px}
@@ -35,6 +37,15 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .feature-list{margin:0;padding-left:18px;line-height:1.8}
 .cards-three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding-bottom:28px}
 .showcase-card h3{margin-top:0}
+.api-keys-flash{border-color:#1d4ed8;background:rgba(29,78,216,.2)}
+.api-key-card{display:flex;flex-direction:column;gap:10px}
+.api-key-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.api-key-status{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;padding:4px 8px;border-radius:999px;font-weight:700}
+.api-key-status.is-active{background:rgba(22,163,74,.2);color:#86efac;border:1px solid rgba(22,163,74,.4)}
+.api-key-status.is-disabled{background:rgba(148,163,184,.2);color:#cbd5e1;border:1px solid rgba(148,163,184,.4)}
+.api-key-value-row{display:flex;gap:8px;align-items:center}
+.api-key-value-input{font-family:monospace}
+.icon-btn{width:42px;height:42px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-size:1.05rem}
 @media (max-width:850px){
   .grid,.hero-grid,.cards-three{grid-template-columns:1fr}
 }
