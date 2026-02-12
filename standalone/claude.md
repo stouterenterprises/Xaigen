@@ -47,6 +47,7 @@ Mechanics:
 - Tracks applied entries in `schema_migrations`.
 - Stores `filename`, `checksum`, `applied_at`.
 - If a previously applied migration file checksum changes, execution halts with clear mismatch error.
+- Migration rollback is only attempted while a transaction is active to avoid masking MySQL DDL errors with `There is no active transaction`.
 
 ## How to add migrations
 1. Add new file in `migrations/` with next sequence number, e.g. `0005_add_index.sql`.
@@ -83,5 +84,6 @@ Negative prompt behavior:
 - **Installer redirects unexpectedly**: check `installed.lock` presence.
 - **DB connection failure**: verify DB host/user/pass and PDO MySQL extension.
 - **Migration checksum mismatch**: do not edit shipped migration files after application; create a new migration instead.
+- **`There is no active transaction` in installer**: this is usually a secondary error triggered after a migration SQL failure; inspect the original SQL/DB error above it and verify DB credentials/permissions and migration compatibility.
 - **No API key configured banner**: set active `XAI_API_KEY` in admin panel.
 - **Generation failures**: inspect error messages in `generations.error_message` and verify x.ai base URL/API key.
