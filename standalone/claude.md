@@ -89,6 +89,8 @@ Negative prompt behavior:
 - `api/tick.php` now enforces a hard running-job timeout via `GENERATION_TIMEOUT_SECONDS` (default `3600` = 60 minutes). If exceeded before a final provider result is received, the generation is marked `failed` with a timeout error so jobs cannot stay in "Generating" forever.
 - `api/tick.php` now recognizes additional async job id fields (`jobId`, `external_job_id`, nested `result/job/data` variants) so image/video jobs are not incorrectly failed when providers use non-`id` naming.
 - `api/tick.php` now supports image responses that return `data[0].b64_json` by writing the decoded image into `storage/generated` and marking the generation `succeeded` immediately (no polling job id required).
+- `lib/xai.php` now throws detailed provider errors for HTTP 4xx/5xx responses (includes method, endpoint, status code, and best-available provider message) so failures are diagnosable from gallery/history error text.
+- `api/tick.php` now fails fast with explicit diagnostics when provider create responses return neither output media nor a pollable job id, instead of leaving ambiguous running/failure states.
 - Generator history cards and `/app/gallery.php` render media thumbnails (image/video), make the content area clickable to open media, and provide Download + Delete actions.
 - `/app/gallery.php` now includes in-progress and completed generations with status badges (e.g., Generating, Generated, Failed), and each preview/title links to `/app/media.php?id=<generation-id>` for full-size viewing.
 - `/app/media.php` provides a dedicated full media viewer page (image/video), current generation status, and quick Download/Back actions.
@@ -109,12 +111,15 @@ Negative prompt behavior:
 ## UI routing and navigation notes
 - Main site entry now serves a marketing landing page at `/index.php` (root path `/`).
 - `/app/create.php` remains the generator workspace.
+- Generator `/app/create.php` now uses a two-tab switcher (Image/Video) so model selection and prompt drafting stay aligned per generation type; switching tabs preserves separate prompt + negative prompt drafts for each type.
 - `/app/gallery.php` shows recent generations across in-progress and completed states, including status badges.
 - A shared, mobile-responsive global navbar is used on the landing page and app pages (home/generator/gallery/admin links).
 - Shared styling is in `app/assets/css/style.css`; shared UI behaviors (including mobile nav toggle) are in `app/assets/js/app.js`.
 - Public pages append a `?v=<filemtime>` cache-busting query string to shared CSS/JS includes so nav/button UI updates are not blocked by stale browser/CDN caches.
 - Admin pages also use the shared global navbar + shared CSS/JS includes (with `?v=<filemtime>` cache busting) so mobile navigation and visual styling stay consistent across the entire site.
 - Admin management pages (`/admin/settings.php`, `/admin/keys.php`, `/admin/models.php`, `/admin/migrations.php`) share the same in-page admin link row so navigation stays stable while switching sections; the logout link is intentionally omitted from that row.
+- `/admin/models.php` now lists models as clickable cards that open `/admin/model_edit.php?id=<model-id>` for full editing.
+- Models support `custom_prompt` and `custom_negative_prompt` defaults that are always merged into generation requests for that model (image or video).
 - `/admin/keys.php` uses an **Add Key** button that opens a modal dialog for key creation; the old inline "Leave blank for new" ID field is removed from the create flow.
 - The shared body background uses a single non-repeating top radial glow over a dark base color to avoid tiled/repeating artifacts on long mobile pages (e.g., gallery).
 - Form submit buttons in studio pages use `.form-btn`; global form control width rules intentionally avoid all `<button>` elements so the mobile menu toggle retains intrinsic width.

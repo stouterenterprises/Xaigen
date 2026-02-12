@@ -42,16 +42,49 @@ function historyDetailsHtml(item){
   return `${linkStart}${title}${meta}${prompt}${errorText}${linkEnd}`;
 }
 
+async function parseJsonResponse(response){
+  const raw = await response.text();
+  let parsed = null;
+  try {
+    parsed = raw ? JSON.parse(raw) : null;
+  } catch (_e) {
+    parsed = null;
+  }
+  return { raw, parsed };
+}
+
+function prettyError(response, parsed, raw){
+  const parts = [`HTTP ${response.status}`];
+  if(parsed && parsed.error){
+    parts.push(String(parsed.error));
+  } else if(raw) {
+    parts.push(raw.slice(0, 500));
+  }
+  return parts.join(': ');
+}
+
 async function submitGeneration(e){
   e.preventDefault();
   const form = e.target;
   const payload = Object.fromEntries(new FormData(form).entries());
   payload.duration_seconds = parseFloat(payload.duration_seconds || '5');
   payload.fps = parseInt(payload.fps || '24', 10);
-  const res = await fetch('/api/generate.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  const data = await res.json();
-  document.getElementById('statusBox').textContent = JSON.stringify(data,null,2);
-  await loadHistory();
+
+  const statusBox = document.getElementById('statusBox');
+  statusBox.textContent = 'Submitting generation request...';
+
+  try {
+    const res = await fetch('/api/generate.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const { parsed, raw } = await parseJsonResponse(res);
+    if(!res.ok){
+      throw new Error(prettyError(res, parsed, raw));
+    }
+
+    statusBox.textContent = JSON.stringify(parsed || { ok: true }, null, 2);
+    await loadHistory();
+  } catch (err) {
+    statusBox.textContent = `Generation request failed: ${err.message}`;
+  }
 }
 
 async function requestTick(){
@@ -117,12 +150,65 @@ function bindMobileNav(){
   });
 }
 
+function setupGeneratorTabs(form){
+  const tabs = Array.from(form.querySelectorAll('[data-type-tab]'));
+  const typeInput = form.querySelector('input[name="type"]');
+  const modelSelect = form.querySelector('select[name="model_key"]');
+  const promptInput = form.querySelector('textarea[name="prompt"]');
+  const negativeInput = form.querySelector('textarea[name="negative_prompt"]');
+  if(!tabs.length || !typeInput || !modelSelect || !promptInput || !negativeInput) return;
+
+  const promptState = { image: { prompt: '', negative: '' }, video: { prompt: '', negative: '' } };
+
+  const refreshModelVisibility = (type) => {
+    const options = Array.from(modelSelect.options);
+    let firstVisibleValue = '';
+    options.forEach((opt) => {
+      const show = (opt.getAttribute('data-model-type') || 'image') === type;
+      opt.hidden = !show;
+      if(show && !firstVisibleValue){
+        firstVisibleValue = opt.value;
+      }
+    });
+
+    if(!modelSelect.value || modelSelect.selectedOptions[0]?.hidden){
+      modelSelect.value = firstVisibleValue;
+    }
+  };
+
+  const setType = (nextType) => {
+    const prevType = typeInput.value || 'image';
+    promptState[prevType] = {
+      prompt: promptInput.value,
+      negative: negativeInput.value,
+    };
+
+    typeInput.value = nextType;
+    tabs.forEach((tab) => {
+      const active = tab.getAttribute('data-type-tab') === nextType;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+
+    promptInput.value = promptState[nextType].prompt || '';
+    negativeInput.value = promptState[nextType].negative || '';
+    refreshModelVisibility(nextType);
+
+    document.querySelectorAll('.row-image-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'image'));
+    document.querySelectorAll('.row-video-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'video'));
+  };
+
+  tabs.forEach((tab)=>tab.addEventListener('click', ()=>setType(tab.getAttribute('data-type-tab') || 'image')));
+  setType(typeInput.value || 'image');
+}
+
 document.addEventListener('DOMContentLoaded',()=>{
   bindMobileNav();
   document.body.addEventListener('click', onDeleteGenerationClick);
 
   const f=document.getElementById('generateForm');
   if(f){
+    setupGeneratorTabs(f);
     f.addEventListener('submit',submitGeneration);
     loadHistory();
     setInterval(loadHistory, 8000);

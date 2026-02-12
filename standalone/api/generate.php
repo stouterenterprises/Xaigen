@@ -13,6 +13,13 @@ if ((bool) cfg('AUTO_MIGRATE', true)) { migrate_if_needed(); }
 
 try {
     $payload = validate_generation_payload(json_input());
+
+    $modelStmt = db()->prepare('SELECT id FROM models WHERE model_key=? AND type=? AND is_active=1 LIMIT 1');
+    $modelStmt->execute([$payload['model_key'], $payload['type']]);
+    if (!$modelStmt->fetch()) {
+        throw new InvalidArgumentException('The selected model is not active for the requested generation type.');
+    }
+
     $id = uuidv4();
     $params = [
         'seed' => $payload['seed'],
@@ -21,6 +28,7 @@ try {
         'duration_seconds' => $payload['duration_seconds'],
         'fps' => $payload['fps'],
     ];
+
     $stmt = db()->prepare('INSERT INTO generations (id,type,model_key,prompt,negative_prompt,params_json,status,created_at,fps,duration_seconds) VALUES (?,?,?,?,?,?,?,?,?,?)');
     $stmt->execute([$id,$payload['type'],$payload['model_key'],$payload['prompt'],$payload['negative_prompt'],json_encode($params),'queued',now_utc(),$payload['fps'],$payload['duration_seconds']]);
 
