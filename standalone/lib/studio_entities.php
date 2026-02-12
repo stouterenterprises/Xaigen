@@ -9,10 +9,25 @@ require_once __DIR__ . '/auth.php';
 function ensure_active_user_for_pages(): array
 {
     $user = current_user();
+    if ($user && ($user['status'] ?? '') === 'active') {
+        return $user;
+    }
+
+    if (is_admin_logged_in()) {
+        return [
+            'id' => null,
+            'username' => (string) (current_admin_username() ?? 'Admin'),
+            'status' => 'active',
+            'role' => 'admin',
+            'is_admin' => true,
+        ];
+    }
+
     if (!$user || ($user['status'] ?? '') !== 'active') {
         header('Location: /app/login.php');
         exit;
     }
+
     return $user;
 }
 

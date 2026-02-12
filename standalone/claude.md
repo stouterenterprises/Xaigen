@@ -145,6 +145,8 @@ Negative prompt behavior:
 - Model configuration now supports individual default fields (`seed`, `aspect_ratio`, `resolution`, `duration_seconds`, `fps`) surfaced directly in admin settings, add-model dialog, and model edit pages.
 - Models page now uses a **New Model** button that opens an add-model dialog.
 - Generator now includes contextual selectors for up to 3 characters, one scene, and multiple parts; selected entity names are appended as creative context in the generation prompt and persisted in `params_json`.
+- App nav now consolidates character/scene/part links into a single **Customize** entry (`/app/customize.php`) that links out to Characters, Parts, and Scenes.
+- Admin sessions can browse `/app/characters.php`, `/app/scenes.php`, and `/app/parts.php` without being forced back through `/app/login.php`; create actions on those pages still require a signed-in active user account.
 - New creator pages:
   - `/app/characters.php` supports private/shared characters with metadata (age 20+, gender, penis size, boob size, height) and up to 20 reference photos.
   - `/app/scenes.php` supports private/public scene libraries split by type (`image` vs `video`), enforcing image uploads for image scenes and video uploads for video scenes.

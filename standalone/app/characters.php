@@ -8,11 +8,15 @@ require_installation();
 start_session();
 if ((bool) cfg('AUTO_MIGRATE', true)) { migrate_if_needed(); }
 $currentUser = ensure_active_user_for_pages();
+$isAdminSession = !empty($currentUser['is_admin']);
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   try {
+    if ($isAdminSession) {
+      throw new InvalidArgumentException('Switch to a user account to create characters. Admin sessions can browse this page without re-login.');
+    }
     $name = trim((string)($_POST['name'] ?? ''));
     $description = trim((string)($_POST['description'] ?? ''));
     $age = (int)($_POST['age'] ?? 0);
@@ -47,8 +51,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $items = [];
 try {
-$stmt = db()->prepare('SELECT c.*, (SELECT cm.media_path FROM character_media cm WHERE cm.character_id = c.id ORDER BY cm.created_at DESC, cm.id DESC LIMIT 1) AS thumbnail_path FROM characters c WHERE c.user_id = ? OR c.is_public = 1 ORDER BY c.created_at DESC');
-$stmt->execute([$currentUser['id']]);
+$where = $isAdminSession ? '1=1' : 'c.user_id = ? OR c.is_public = 1';
+$stmt = db()->prepare("SELECT c.*, (SELECT cm.media_path FROM character_media cm WHERE cm.character_id = c.id ORDER BY cm.created_at DESC, cm.id DESC LIMIT 1) AS thumbnail_path FROM characters c WHERE {$where} ORDER BY c.created_at DESC");
+if ($isAdminSession) {
+  $stmt->execute();
+} else {
+  $stmt->execute([$currentUser['id']]);
+}
 $items = $stmt->fetchAll();
 } catch (Throwable $e) {
   $error = $e->getMessage();
@@ -58,7 +67,7 @@ $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
 <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Characters</title><link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>"></head><body>
-<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/app/create.php">Generator</a><a href="/app/characters.php">Characters</a><a href="/app/scenes.php">Scenes</a><a href="/app/parts.php">Parts</a><a href="/app/gallery.php">Gallery</a><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a></div></div></nav>
+<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/app/create.php">Generator</a><a href="/app/customize.php">Customize</a><a href="/app/gallery.php">Gallery</a><?php if($isAdminSession): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php endif; ?></div></div></nav>
 <div class="container"><h1>Characters</h1><?php if($error): ?><div class="banner"><?=htmlspecialchars($error)?></div><?php endif; ?><?php if($success): ?><div class="banner banner-success"><?=htmlspecialchars($success)?></div><?php endif; ?>
 <div class="grid"><div class="card"><h3>Create Character</h3><form method="post" enctype="multipart/form-data">
 <div class="row"><label>Name</label><input name="name" required></div>
