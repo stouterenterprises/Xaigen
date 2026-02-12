@@ -7,10 +7,12 @@ start_session();
 
 $message = '';
 $messageType = '';
+$view = (string) ($_GET['view'] ?? 'login');
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? 'login');
     if ($action === 'register') {
+        $view = 'register';
         $result = register_user_request(
             (string) ($_POST['full_name'] ?? ''),
             (string) ($_POST['username'] ?? ''),
@@ -27,7 +29,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $messageType = 'error';
         }
     } else {
-        $result = user_login((string) ($_POST['username_or_email'] ?? ''), (string) ($_POST['password'] ?? ''));
+        $identifier = (string) ($_POST['username_or_email'] ?? '');
+        $password = (string) ($_POST['password'] ?? '');
+
+        if (admin_login($identifier, $password)) {
+            header('Location: /admin/users.php');
+            exit;
+        }
+
+        $result = user_login($identifier, $password);
         if (!empty($result['ok'])) {
             header('Location: /app/create.php');
             exit;
@@ -64,23 +74,14 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
   </nav>
 
   <div class="container">
-    <h1>User Login</h1>
+    <h1>Login</h1>
     <?php if ($message): ?>
       <div class="banner <?=$messageType === 'success' ? 'banner-success' : ''?>"><?=htmlspecialchars($message)?></div>
     <?php endif; ?>
-    <div class="grid">
-      <div class="card">
-        <h3>Login</h3>
-        <form method="post">
-          <input type="hidden" name="action" value="login">
-          <div class="row"><label>Username or Email</label><input name="username_or_email" required></div>
-          <div class="row"><label>Password</label><input type="password" name="password" required></div>
-          <button class="form-btn" type="submit">Login</button>
-        </form>
-      </div>
-      <div class="card">
+    <div class="card">
+      <?php if ($view === 'register'): ?>
         <h3>Create User Request</h3>
-        <form method="post">
+        <form method="post" action="/app/login.php?view=register">
           <input type="hidden" name="action" value="register">
           <div class="row"><label>Name</label><input name="full_name" required></div>
           <div class="row"><label>Username</label><input name="username" required></div>
@@ -89,7 +90,17 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
           <div class="row"><label>Password</label><input type="password" name="password" minlength="8" required></div>
           <button class="form-btn" type="submit">Request Account</button>
         </form>
-      </div>
+        <p><a href="/app/login.php">Back to Login</a></p>
+      <?php else: ?>
+        <h3>User + Admin Login</h3>
+        <form method="post">
+          <input type="hidden" name="action" value="login">
+          <div class="row"><label>Username or Email</label><input name="username_or_email" required></div>
+          <div class="row"><label>Password</label><input type="password" name="password" required></div>
+          <button class="form-btn" type="submit">Login</button>
+        </form>
+        <p><a href="/app/login.php?view=register">Create Account</a></p>
+      <?php endif; ?>
     </div>
   </div>
 
