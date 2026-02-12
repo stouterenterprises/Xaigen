@@ -96,4 +96,6 @@ Negative prompt behavior:
 - `/app/gallery.php` is the recent successful generations gallery.
 - A shared, mobile-responsive global navbar is used on the landing page and app pages (home/generator/gallery/admin links).
 - Shared styling is in `app/assets/css/style.css`; shared UI behaviors (including mobile nav toggle) are in `app/assets/js/app.js`.
+- Public pages append a `?v=<filemtime>` cache-busting query string to shared CSS/JS includes so nav/button UI updates are not blocked by stale browser/CDN caches.
+- Form submit buttons in studio pages use `.form-btn`; global form control width rules intentionally avoid all `<button>` elements so the mobile menu toggle retains intrinsic width.
 - Mobile nav keeps the menu button at intrinsic width and opens a stacked dropdown panel to avoid full-width button overlap and cramped inline link wrapping in portrait layouts.

@@ -1,11 +1,13 @@
 <?php
+$styleVersion = @filemtime(__DIR__ . '/app/assets/css/style.css') ?: time();
+$scriptVersion = @filemtime(__DIR__ . '/app/assets/js/app.js') ?: time();
 ?><!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Xaigen - AI Image & Video Generator</title>
-  <link rel="stylesheet" href="/app/assets/css/style.css">
+  <link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>">
 </head>
 <body>
   <nav class="site-nav">
@@ -59,6 +61,6 @@
     </article>
   </section>
 
-  <script src="/app/assets/js/app.js"></script>
+  <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
 </body>
 </html>
