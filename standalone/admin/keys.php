@@ -92,7 +92,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 
   <div class="container">
     <h1>API Keys</h1>
-    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
+    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
     <?php if ($flash !== ''): ?><div class="card api-keys-flash"><?=htmlspecialchars($flash)?></div><?php endif; ?>
     <div class="card">
       <h3>API Key Actions</h3>

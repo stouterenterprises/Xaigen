@@ -2,51 +2,31 @@
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/app_settings.php';
 require_admin();
 
+$defaults = get_generation_defaults();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $id = trim((string) ($_POST['id'] ?? ''));
-    if ($id === '') {
-        $id = uuidv4();
-    }
+    $id = uuidv4();
 
-    $exists = db()->prepare('SELECT id FROM models WHERE id=?');
-    $exists->execute([$id]);
-
-    $type = (string) ($_POST['type'] ?? 'image');
-    $modelKey = trim((string) ($_POST['model_key'] ?? ''));
-    $displayName = trim((string) ($_POST['display_name'] ?? ''));
-    $customPrompt = trim((string) ($_POST['custom_prompt'] ?? ''));
-    $customNegativePrompt = trim((string) ($_POST['custom_negative_prompt'] ?? ''));
-    $supportsNegativePrompt = (int) !empty($_POST['supports_negative_prompt']);
-    $isActive = (int) !empty($_POST['is_active']);
-
-    if ($exists->fetch()) {
-        db()->prepare('UPDATE models SET type=?, model_key=?, display_name=?, custom_prompt=?, custom_negative_prompt=?, supports_negative_prompt=?, is_active=?, updated_at=? WHERE id=?')->execute([
-            $type,
-            $modelKey,
-            $displayName,
-            $customPrompt,
-            $customNegativePrompt,
-            $supportsNegativePrompt,
-            $isActive,
-            now_utc(),
-            $id,
-        ]);
-    } else {
-        db()->prepare('INSERT INTO models (type,model_key,display_name,custom_prompt,custom_negative_prompt,supports_negative_prompt,is_active,created_at,updated_at,id) VALUES (?,?,?,?,?,?,?,?,?,?)')->execute([
-            $type,
-            $modelKey,
-            $displayName,
-            $customPrompt,
-            $customNegativePrompt,
-            $supportsNegativePrompt,
-            $isActive,
-            now_utc(),
-            now_utc(),
-            $id,
-        ]);
-    }
+    db()->prepare('INSERT INTO models (type,model_key,display_name,custom_prompt,custom_negative_prompt,default_seed,default_aspect_ratio,default_resolution,default_duration_seconds,default_fps,supports_negative_prompt,is_active,created_at,updated_at,id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+        (string) ($_POST['type'] ?? 'image'),
+        trim((string) ($_POST['model_key'] ?? '')),
+        trim((string) ($_POST['display_name'] ?? '')),
+        trim((string) ($_POST['custom_prompt'] ?? '')),
+        trim((string) ($_POST['custom_negative_prompt'] ?? '')),
+        ($_POST['default_seed'] ?? '') === '' ? null : (int) $_POST['default_seed'],
+        trim((string) ($_POST['default_aspect_ratio'] ?? '')),
+        trim((string) ($_POST['default_resolution'] ?? '')),
+        ($_POST['default_duration_seconds'] ?? '') === '' ? null : (float) $_POST['default_duration_seconds'],
+        ($_POST['default_fps'] ?? '') === '' ? null : (int) $_POST['default_fps'],
+        (int) !empty($_POST['supports_negative_prompt']),
+        (int) !empty($_POST['is_active']),
+        now_utc(),
+        now_utc(),
+        $id,
+    ]);
 
     header('Location: /admin/models.php');
     exit;
@@ -65,45 +45,46 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
   <title>Models</title>
 </head>
 <body>
-  <nav class="site-nav">
-    <div class="container nav-inner">
-      <a class="brand" href="/">Xaigen</a>
-      <button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
-      <div id="nav-links" class="nav-links">
-        <a href="/">Home</a>
-        <a href="/app/create.php">Generator</a>
-        <a href="/app/gallery.php">Gallery</a>
-        <a href="/admin/index.php">Admin</a>
-      </div>
-    </div>
-  </nav>
+  <nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><a href="/admin/index.php">Admin</a></div></div></nav>
 
   <div class="container">
     <h1>Models</h1>
-    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
+    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
 
-    <div class="card">
-      <h3>Add model</h3>
+    <button class="form-btn" type="button" id="openAddModel">New Model</button>
+
+    <dialog id="addModelDialog">
       <form method="post" class="admin-model-form">
+        <h3>Add model</h3>
         <div class="row"><label>Type</label><select name="type" required><option value="image">Image</option><option value="video">Video</option></select></div>
         <div class="row"><label>Model key</label><input name="model_key" required></div>
         <div class="row"><label>Display name</label><input name="display_name" required></div>
-        <div class="row"><label>Custom prompt (always prepended)</label><textarea name="custom_prompt"></textarea></div>
-        <div class="row"><label>Custom negative prompt (always appended)</label><textarea name="custom_negative_prompt"></textarea></div>
+        <div class="row"><label>Custom prompt</label><textarea name="custom_prompt"></textarea></div>
+        <div class="row"><label>Custom negative prompt</label><textarea name="custom_negative_prompt"></textarea></div>
+        <div class="row"><label>Default seed</label><input name="default_seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
+        <div class="row"><label>Default aspect ratio</label><input name="default_aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
+        <div class="row"><label>Default resolution</label><input name="default_resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>
+        <div class="row"><label>Default duration seconds</label><input name="default_duration_seconds" value="<?=htmlspecialchars((string)$defaults['duration_seconds'])?>"></div>
+        <div class="row"><label>Default fps</label><input name="default_fps" value="<?=htmlspecialchars((string)$defaults['fps'])?>"></div>
         <label><input type="checkbox" name="supports_negative_prompt" checked> Supports negative prompt</label>
         <label><input type="checkbox" name="is_active" checked> Active</label>
-        <button class="form-btn" type="submit">Save</button>
+        <div class="gallery-actions"><button class="btn" type="button" id="closeAddModel">Cancel</button><button class="form-btn" type="submit">Save</button></div>
       </form>
-    </div>
+    </dialog>
 
     <?php foreach ($rows as $r): ?>
       <a class="card model-link-card" href="/admin/model_edit.php?id=<?=urlencode((string)$r['id'])?>">
-        <strong><?=htmlspecialchars($r['display_name'])?></strong>
-        <span class="muted"><?=htmlspecialchars($r['model_key'])?> • <?=htmlspecialchars($r['type'])?></span>
+        <strong><?=htmlspecialchars((string)$r['display_name'])?></strong>
+        <span class="muted"><?=htmlspecialchars((string)$r['model_key'])?> • <?=htmlspecialchars((string)$r['type'])?></span>
       </a>
     <?php endforeach; ?>
   </div>
 
   <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
+  <script>
+    const addDialog = document.getElementById('addModelDialog');
+    document.getElementById('openAddModel')?.addEventListener('click', ()=>addDialog?.showModal());
+    document.getElementById('closeAddModel')?.addEventListener('click', ()=>addDialog?.close());
+  </script>
 </body>
 </html>

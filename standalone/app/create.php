@@ -1,58 +1,42 @@
 <?php
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/app_settings.php';
 require_installation();
+start_session();
 
 $models = db()->query("SELECT * FROM models WHERE is_active = 1 ORDER BY type, display_name")->fetchAll();
 $apiRows = db()->query("SELECT COUNT(*) AS c FROM api_keys WHERE provider='xai' AND key_name='XAI_API_KEY' AND is_active=1")->fetch();
 $hasApi = (int)($apiRows['c'] ?? 0) > 0;
+$currentUser = current_user();
+$hasActiveAccount = !empty($_SESSION['admin_user_id']) || (($currentUser['status'] ?? '') === 'active');
+$defaults = get_generation_defaults();
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Generation Studio</title>
-  <link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>">
-</head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Generation Studio</title><link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>"></head>
 <body>
-  <nav class="site-nav">
-    <div class="container nav-inner">
-      <a class="brand" href="/">Xaigen</a>
-      <button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
-      <div id="nav-links" class="nav-links">
-        <a href="/">Home</a>
-        <a href="/app/create.php">Generator</a>
-        <a href="/app/gallery.php">Gallery</a>
-        <a href="/admin/index.php">Admin</a>
-      </div>
-    </div>
-  </nav>
-
-  <div class="container">
-    <h1>Image + Video Generation Studio</h1>
-    <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
-    <div class="grid">
-      <div class="card"><h3>Create</h3><form id="generateForm">
-      <div class="generator-tabs" role="tablist" aria-label="Generation type">
-        <button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-type-tab="image">Image</button>
-        <button class="generator-tab" type="button" role="tab" aria-selected="false" data-type-tab="video">Video</button>
-      </div>
-      <input type="hidden" name="type" value="image">
-      <div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars($m['model_key'])?>" data-model-type="<?=htmlspecialchars($m['type'])?>"><?=htmlspecialchars($m['display_name'])?> (<?=htmlspecialchars($m['type'])?>)</option><?php endforeach; ?></select></div>
-      <div class="row"><label>Prompt</label><textarea name="prompt" required></textarea></div>
-      <div class="row"><label>Negative Prompt</label><textarea name="negative_prompt"></textarea></div>
-      <div class="row row-image-only"><label>Seed</label><input name="seed"></div>
-      <div class="row row-image-only"><label>Aspect ratio</label><input name="aspect_ratio" value="16:9"></div>
-      <div class="row"><label>Resolution</label><input name="resolution" value="1024x1024"></div>
-      <div class="row row-video-only is-hidden"><label>Video duration</label><input name="duration_seconds" value="5"></div>
-      <div class="row row-video-only is-hidden"><label>FPS</label><input name="fps" value="24"></div>
-      <button class="form-btn" type="submit">Generate</button></form></div>
-      <div><div class="card"><h3>Preview + Status</h3><pre id="statusBox" class="muted">Submit a generation request.</pre></div><div id="historyBox"></div></div>
-    </div>
-  </div>
-  <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
+<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?><a href="/admin/index.php">Admin</a></div></div></nav>
+<div class="container">
+<h1>Image + Video Generation Studio</h1>
+<?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
+<?php if(!$hasActiveAccount): ?><div class="banner">You need an active account to generate. Please login or request access.</div><?php endif; ?>
+<div class="grid"><div class="card"><h3>Create</h3><form id="generateForm">
+<div class="generator-tabs" role="tablist" aria-label="Generation type"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-type-tab="image">Image</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-type-tab="video">Video</button></div>
+<input type="hidden" name="type" value="image">
+<div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars((string)$m['model_key'])?>" data-model-type="<?=htmlspecialchars((string)$m['type'])?>" data-default-seed="<?=htmlspecialchars((string)($m['default_seed'] ?? ''))?>" data-default-aspect-ratio="<?=htmlspecialchars((string)($m['default_aspect_ratio'] ?? ''))?>" data-default-resolution="<?=htmlspecialchars((string)($m['default_resolution'] ?? ''))?>" data-default-duration="<?=htmlspecialchars((string)($m['default_duration_seconds'] ?? ''))?>" data-default-fps="<?=htmlspecialchars((string)($m['default_fps'] ?? ''))?>"><?=htmlspecialchars((string)$m['display_name'])?> (<?=htmlspecialchars((string)$m['type'])?>)</option><?php endforeach; ?></select></div>
+<div class="row"><label>Prompt</label><textarea name="prompt" required></textarea></div>
+<div class="row"><label>Negative Prompt</label><textarea name="negative_prompt"></textarea></div>
+<div class="row row-image-only"><label>Seed</label><input name="seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
+<div class="row row-image-only"><label>Aspect ratio</label><input name="aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
+<div class="row"><label>Resolution</label><input name="resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>
+<div class="row row-video-only is-hidden"><label>Video duration</label><input name="duration_seconds" value="<?=htmlspecialchars((string)$defaults['duration_seconds'])?>"></div>
+<div class="row row-video-only is-hidden"><label>FPS</label><input name="fps" value="<?=htmlspecialchars((string)$defaults['fps'])?>"></div>
+<button class="form-btn" type="submit" <?=$hasActiveAccount ? '' : 'disabled'?>>Generate</button></form></div><div><div class="card"><h3>Preview + Status</h3><pre id="statusBox" class="muted">Submit a generation request.</pre></div><div id="historyBox"></div></div></div>
+</div>
+<script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
 </body>
 </html>

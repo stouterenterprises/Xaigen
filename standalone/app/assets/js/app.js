@@ -139,6 +139,20 @@ async function onDeleteGenerationClick(e){
   }
 }
 
+
+async function onToggleVisibilityClick(e){
+  const button = e.target.closest('.js-toggle-visibility');
+  if(!button) return;
+  const id = button.getAttribute('data-id');
+  if(!id) return;
+  const response = await fetch('/api/toggle_visibility.php',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  if(!response.ok){ window.alert('Could not update visibility.'); return; }
+  const data = await response.json();
+  const isPublic = Number(data.is_public || 0) === 1;
+  button.setAttribute('data-public', isPublic ? '1' : '0');
+  button.textContent = isPublic ? '🔗 Public' : '🔒 Private';
+}
+
 function bindMobileNav(){
   const menuToggle = document.querySelector('.menu-toggle');
   const navLinks = document.querySelector('#nav-links');
@@ -159,6 +173,22 @@ function setupGeneratorTabs(form){
   if(!tabs.length || !typeInput || !modelSelect || !promptInput || !negativeInput) return;
 
   const promptState = { image: { prompt: '', negative: '' }, video: { prompt: '', negative: '' } };
+
+
+  const applyModelDefaults = () => {
+    const selected = modelSelect.selectedOptions[0];
+    if(!selected) return;
+    const seedInput = form.querySelector('input[name="seed"]');
+    const aspectInput = form.querySelector('input[name="aspect_ratio"]');
+    const resolutionInput = form.querySelector('input[name="resolution"]');
+    const durationInput = form.querySelector('input[name="duration_seconds"]');
+    const fpsInput = form.querySelector('input[name="fps"]');
+    if(seedInput && selected.dataset.defaultSeed) seedInput.value = selected.dataset.defaultSeed;
+    if(aspectInput && selected.dataset.defaultAspectRatio) aspectInput.value = selected.dataset.defaultAspectRatio;
+    if(resolutionInput && selected.dataset.defaultResolution) resolutionInput.value = selected.dataset.defaultResolution;
+    if(durationInput && selected.dataset.defaultDuration) durationInput.value = selected.dataset.defaultDuration;
+    if(fpsInput && selected.dataset.defaultFps) fpsInput.value = selected.dataset.defaultFps;
+  };
 
   const refreshModelVisibility = (type) => {
     const options = Array.from(modelSelect.options);
@@ -199,12 +229,15 @@ function setupGeneratorTabs(form){
   };
 
   tabs.forEach((tab)=>tab.addEventListener('click', ()=>setType(tab.getAttribute('data-type-tab') || 'image')));
+  modelSelect.addEventListener('change', applyModelDefaults);
   setType(typeInput.value || 'image');
+  applyModelDefaults();
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
   bindMobileNav();
   document.body.addEventListener('click', onDeleteGenerationClick);
+  document.body.addEventListener('click', onToggleVisibilityClick);
 
   const f=document.getElementById('generateForm');
   if(f){

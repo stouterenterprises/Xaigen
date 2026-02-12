@@ -1,16 +1,13 @@
 <?php
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/auth.php';
-require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/app_settings.php';
 require_admin();
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $json = (string)($_POST['defaults_json'] ?? '{}');
-    json_decode($json, true, 512, JSON_THROW_ON_ERROR);
-    $stmt = db()->prepare("INSERT INTO app_settings (setting_key,setting_value,updated_at) VALUES ('defaults_json',?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value), updated_at=VALUES(updated_at)");
-    $stmt->execute([$json, now_utc()]);
+    save_generation_defaults($_POST);
 }
-$row = db()->query("SELECT setting_value FROM app_settings WHERE setting_key='defaults_json'")->fetch();
-$val = $row['setting_value'] ?? '{"resolution":"1024x1024"}';
+$defaults = get_generation_defaults();
 $styleVersion = @filemtime(__DIR__ . '/../app/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 ?>
@@ -38,8 +35,17 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 
   <div class="container">
     <h1>Settings</h1>
-    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
-    <div class="card"><form method="post"><textarea name="defaults_json" rows="12"><?=htmlspecialchars($val)?></textarea><button type="submit">Save</button></form></div>
+    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
+    <div class="card">
+      <form method="post">
+        <div class="row"><label>Default Seed</label><input name="seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
+        <div class="row"><label>Default Aspect Ratio</label><input name="aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
+        <div class="row"><label>Default Resolution</label><input name="resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>
+        <div class="row"><label>Default Video Duration (seconds)</label><input name="duration_seconds" value="<?=htmlspecialchars((string)$defaults['duration_seconds'])?>"></div>
+        <div class="row"><label>Default FPS</label><input name="fps" value="<?=htmlspecialchars((string)$defaults['fps'])?>"></div>
+        <button class="form-btn" type="submit">Save</button>
+      </form>
+    </div>
   </div>
 
   <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
