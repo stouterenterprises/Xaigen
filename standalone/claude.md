@@ -96,3 +96,4 @@ Negative prompt behavior:
 - `/app/gallery.php` is the recent successful generations gallery.
 - A shared, mobile-responsive global navbar is used on the landing page and app pages (home/generator/gallery/admin links).
 - Shared styling is in `app/assets/css/style.css`; shared UI behaviors (including mobile nav toggle) are in `app/assets/js/app.js`.
+- Mobile nav keeps the menu button at intrinsic width and opens a stacked dropdown panel to avoid full-width button overlap and cramped inline link wrapping in portrait layouts.
