@@ -48,6 +48,7 @@ Mechanics:
 - Stores `filename`, `checksum`, `applied_at`.
 - If a previously applied migration file checksum changes, execution halts with clear mismatch error.
 - Migration runner now guards begin/commit/rollback with transaction state checks because MySQL DDL may implicitly commit.
+- Migration `0005_model_prompt_defaults.sql` now uses `information_schema` + dynamic `ALTER TABLE` statements (instead of `ADD COLUMN IF NOT EXISTS`) for compatibility with older MySQL/MariaDB versions.
 - Migration errors are rethrown with filename context (`Failed applying migration <file>: ...`) for clearer installer/admin diagnostics.
 
 ## How to add migrations
