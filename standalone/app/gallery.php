@@ -46,6 +46,7 @@ function status_label(string $status): string {
     <h1>Gallery</h1>
     <div class="gallery-list">
       <?php foreach($items as $g): ?>
+        <?php $isSucceeded = strtolower((string)($g['status'] ?? '')) === 'succeeded'; ?>
         <?php $hasOutput = !empty($g['output_path']); ?>
         <?php $mediaViewHref = '/app/media.php?id=' . urlencode((string)$g['id']); ?>
         <?php $statusClass = 'status-' . preg_replace('/[^a-z0-9_-]/', '', strtolower((string)($g['status'] ?? 'unknown'))); ?>
@@ -77,7 +78,9 @@ function status_label(string $status): string {
 
             <div class="gallery-actions">
               <?php if($hasOutput): ?>
-                <a class="btn btn-secondary" href="/api/download.php?id=<?=urlencode($g['id'])?>">Download</a>
+                <?php if ($isSucceeded): ?>
+                  <a class="btn btn-secondary" href="/api/download.php?id=<?=urlencode($g['id'])?>">Download</a>
+                <?php endif; ?>
               <?php endif; ?>
               <button class="btn btn-danger js-delete-generation" data-id="<?=htmlspecialchars($g['id'])?>" type="button">Delete</button>
             </div>

@@ -16,6 +16,64 @@ function extract_output_url(array $body): ?string
         $body['video_url'] ?? null,
         $body['result']['url'] ?? null,
         $body['response']['url'] ?? null,
+        $body['result']['output_url'] ?? null,
+        $body['result']['video_url'] ?? null,
+        $body['result']['image_url'] ?? null,
+        $body['result']['media_url'] ?? null,
+        $body['output'][0]['url'] ?? null,
+        $body['output'][0]['output_url'] ?? null,
+        $body['artifacts'][0]['url'] ?? null,
+        $body['artifacts'][0]['output_url'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+
+    return null;
+}
+
+function extract_preview_url(array $body): ?string
+{
+    $candidates = [
+        $body['preview_url'] ?? null,
+        $body['preview_image_url'] ?? null,
+        $body['thumbnail_url'] ?? null,
+        $body['poster_url'] ?? null,
+        $body['result']['preview_url'] ?? null,
+        $body['result']['preview_image_url'] ?? null,
+        $body['result']['thumbnail_url'] ?? null,
+        $body['data'][0]['preview_url'] ?? null,
+        $body['data'][0]['thumbnail_url'] ?? null,
+        $body['artifacts'][0]['preview_url'] ?? null,
+        $body['artifacts'][0]['thumbnail_url'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+
+    return null;
+}
+
+function update_running_preview(array $job, string $previewUrl): void
+{
+    db()->prepare('UPDATE generations SET output_path=?, output_mime=? WHERE id=? AND status=\'running\'')
+        ->execute([$previewUrl, 'image/png', $job['id']]);
+}
+
+function extract_external_job_id(array $body): ?string
+{
+    $candidates = [
+        $body['id'] ?? null,
+        $body['job_id'] ?? null,
+        $body['job']['id'] ?? null,
+        $body['data'][0]['id'] ?? null,
+        $body['result']['id'] ?? null,
     ];
 
     foreach ($candidates as $candidate) {
@@ -44,6 +102,11 @@ function process_running_job(array $job): array
         $body = $response['body'];
         $state = strtolower((string) ($body['status'] ?? $body['state'] ?? ''));
         $output = extract_output_url($body);
+        $preview = extract_preview_url($body);
+
+        if ($preview !== null) {
+            update_running_preview($job, $preview);
+        }
 
         if ($output !== null && ($state === '' || $state === 'succeeded' || $state === 'completed' || $state === 'done')) {
             mark_succeeded($job, (string) $job['external_job_id'], $output);
@@ -90,16 +153,17 @@ function process_one_queued_job(): array
             : generate_image($job, (bool) $model['supports_negative_prompt']);
 
         $body = $response['body'];
-        $external = $body['id'] ?? $body['job_id'] ?? null;
+        $external = extract_external_job_id($body);
         $output = extract_output_url($body);
+        $preview = extract_preview_url($body);
 
         if ($output !== null) {
             mark_succeeded($job, is_string($external) ? $external : null, $output);
             return ['ok' => true, 'id' => $job['id'], 'status' => 'succeeded'];
         }
 
-        db()->prepare("UPDATE generations SET external_job_id=? WHERE id=?")
-            ->execute([is_string($external) ? $external : null, $job['id']]);
+        db()->prepare("UPDATE generations SET external_job_id=?, output_path=?, output_mime=? WHERE id=?")
+            ->execute([$external, $preview, $preview !== null ? 'image/png' : null, $job['id']]);
 
         return ['ok' => true, 'id' => $job['id'], 'status' => 'running'];
     } catch (Throwable $e) {
