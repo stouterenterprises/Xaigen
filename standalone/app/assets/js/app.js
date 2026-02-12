@@ -35,10 +35,11 @@ function historyDetailsHtml(item){
   const title = `<strong>${escapeHtml(item.type)}</strong> • ${escapeHtml(item.model_key)}`;
   const prompt = item.prompt ? `<span>${escapeHtml(item.prompt)}</span>` : '';
   const meta = `<small class="status-pill status-${escapeHtml(String(item.status || '').toLowerCase())}">${escapeHtml(statusDisplay(item.status))}</small>`;
+  const errorText = item.error_message ? `<small class="muted">${escapeHtml(item.error_message)}</small>` : '';
   const linkStart = item.output_path ? `<a class="history-main-link" href="${mediaViewUrl(item)}">` : '<div class="history-main-link">';
   const linkEnd = item.output_path ? '</a>' : '</div>';
 
-  return `${linkStart}${title}${meta}${prompt}${linkEnd}`;
+  return `${linkStart}${title}${meta}${prompt}${errorText}${linkEnd}`;
 }
 
 async function submitGeneration(e){

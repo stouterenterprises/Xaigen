@@ -87,7 +87,7 @@ function extract_external_job_id(array $body): ?string
 
 function mark_succeeded(array $job, ?string $external, string $output): void
 {
-    db()->prepare("UPDATE generations SET status='succeeded', external_job_id=?, output_path=?, output_mime=?, finished_at=? WHERE id=?")
+    db()->prepare("UPDATE generations SET status='succeeded', external_job_id=?, output_path=?, output_mime=?, error_message=NULL, finished_at=? WHERE id=?")
         ->execute([$external, $output, $job['type'] === 'video' ? 'video/mp4' : 'image/png', now_utc(), $job['id']]);
 }
 
@@ -100,6 +100,8 @@ function process_running_job(array $job): array
     try {
         $response = poll_job((string) $job['external_job_id']);
         $body = $response['body'];
+        db()->prepare("UPDATE generations SET error_message=NULL WHERE id=? AND status='running'")
+            ->execute([$job['id']]);
         $state = strtolower((string) ($body['status'] ?? $body['state'] ?? ''));
         $output = extract_output_url($body);
         $preview = extract_preview_url($body);
@@ -122,6 +124,8 @@ function process_running_job(array $job): array
 
         return ['ok' => true, 'id' => $job['id'], 'status' => 'running'];
     } catch (Throwable $e) {
+        db()->prepare("UPDATE generations SET error_message=? WHERE id=? AND status='running'")
+            ->execute([$e->getMessage(), $job['id']]);
         return ['ok' => false, 'id' => $job['id'], 'status' => 'running', 'error' => $e->getMessage()];
     }
 }
@@ -140,7 +144,7 @@ function process_one_queued_job(): array
         return ['ok' => true, 'message' => 'No queued jobs'];
     }
 
-    db()->prepare("UPDATE generations SET status='running', started_at=? WHERE id=?")
+    db()->prepare("UPDATE generations SET status='running', started_at=?, error_message=NULL WHERE id=?")
         ->execute([now_utc(), $job['id']]);
 
     $modelStmt = db()->prepare('SELECT * FROM models WHERE model_key=? AND type=? LIMIT 1');
