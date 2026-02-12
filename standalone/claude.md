@@ -82,6 +82,10 @@ Negative prompt behavior:
 - Uploads standalone content directly to live root (`PROD_ROOT_PATH`) using **FTPS (TLS)**.
 - No staging server used.
 
+- `/api/delete.php` deletes a generation row by id so users can remove items from gallery/history cards.
+- `api/tick.php` now supports async provider flows: if create returns only a job id, records stay `running` and later ticks poll `/jobs/{id}` until an output URL is available.
+- Generator history cards and `/app/gallery.php` render media thumbnails (image/video), make the content area clickable to open media, and provide Download + Delete actions.
+
 ## Troubleshooting
 - **Installer redirects unexpectedly**: check `installed.lock` presence.
 - **DB connection failure**: verify DB host/user/pass and PDO MySQL extension.
