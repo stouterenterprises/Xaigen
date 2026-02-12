@@ -38,6 +38,16 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
     file_put_contents($lock, "installed_at=" . now_utc());
     header('Location: /installer/step_finish.php?mode=fresh'); exit;
-  } catch (Throwable $e) { $msg=$e->getMessage(); }
+  } catch (Throwable $e) {
+    $rawMessage = trim((string) $e->getMessage());
+    $msg = $rawMessage;
+
+    if (stripos($rawMessage, 'no active transaction') !== false) {
+      $msg = 'A migration triggered an implicit MySQL commit and the installer lost transaction context. '
+        . 'Please retry. If the error persists, run installer/step_finish.php?mode=upgrade and click "Run migrations" to see the exact migration failure.';
+    } elseif (stripos($rawMessage, 'Failed applying migration') === 0) {
+      $msg = $rawMessage . ' Please check DB permissions and SQL compatibility for this server version.';
+    }
+  }
 }
 ?><!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="/app/assets/css/style.css"><title>Installer Admin</title></head><body><div class="container"><div class="card"><h1>Step 2: Admin Account</h1><?php if($msg): ?><div class="banner"><?=htmlspecialchars($msg)?></div><?php endif; ?><form method="post"><input name="username" placeholder="Admin username" required><input type="password" name="password" placeholder="Admin password" required><button>Run migrations + finalize install</button></form></div></div></body></html>
