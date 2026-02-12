@@ -89,3 +89,10 @@ Negative prompt behavior:
 - **Admin installer step fails during migration**: `step_admin.php` now shows a guided message and suggests running `/installer/step_finish.php?mode=upgrade` to run migrations directly and reveal the exact SQL/DB failure.
 - **No API key configured banner**: set active `XAI_API_KEY` in admin panel.
 - **Generation failures**: inspect error messages in `generations.error_message` and verify x.ai base URL/API key.
+
+## UI routing and navigation notes
+- Main site entry now serves a marketing landing page at `/index.php` (root path `/`).
+- `/app/create.php` remains the generator workspace.
+- `/app/gallery.php` is the recent successful generations gallery.
+- A shared, mobile-responsive global navbar is used on the landing page and app pages (home/generator/gallery/admin links).
+- Shared styling is in `app/assets/css/style.css`; shared UI behaviors (including mobile nav toggle) are in `app/assets/js/app.js`.

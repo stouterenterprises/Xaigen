@@ -14,6 +14,7 @@ async function loadHistory(){
   const res = await fetch('/api/history.php');
   const data = await res.json();
   const box = document.getElementById('historyBox');
+  if (!box) return;
   box.innerHTML = '';
   (data.items||[]).forEach(item=>{
     const div=document.createElement('div');
@@ -23,4 +24,22 @@ async function loadHistory(){
   });
 }
 
-document.addEventListener('DOMContentLoaded',()=>{const f=document.getElementById('generateForm'); if(f){f.addEventListener('submit',submitGeneration); loadHistory();}});
+function bindMobileNav(){
+  const menuToggle = document.querySelector('.menu-toggle');
+  const navLinks = document.querySelector('#nav-links');
+  if (!menuToggle || !navLinks) return;
+
+  menuToggle.addEventListener('click', ()=>{
+    const open = navLinks.classList.toggle('open');
+    menuToggle.setAttribute('aria-expanded', String(open));
+  });
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  bindMobileNav();
+  const f=document.getElementById('generateForm');
+  if(f){
+    f.addEventListener('submit',submitGeneration);
+    loadHistory();
+  }
+});
