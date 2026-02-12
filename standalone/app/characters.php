@@ -45,9 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   }
 }
 
+$items = [];
+try {
 $stmt = db()->prepare('SELECT c.*, cm.media_path AS thumbnail_path FROM characters c LEFT JOIN character_media cm ON cm.character_id = c.id WHERE c.user_id = ? OR c.is_public = 1 GROUP BY c.id ORDER BY c.created_at DESC');
 $stmt->execute([$currentUser['id']]);
 $items = $stmt->fetchAll();
+} catch (Throwable $e) {
+  $error = $e->getMessage();
+}
+
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>

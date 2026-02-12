@@ -2,23 +2,34 @@
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/migrations.php';
 require_installation();
 
 start_session();
-$currentUser = current_user();
-$id = (string) ($_GET['id'] ?? '');
-$stmt = db()->prepare('SELECT * FROM generations WHERE id = ? LIMIT 1');
-$stmt->execute([$id]);
-$item = $stmt->fetch();
+$currentUser = null;
+$item = null;
+$pageError = '';
 
-if (!$item) {
-    http_response_code(404);
-}
-if ($item && (int)($item['is_public'] ?? 0) !== 1) {
-    if (!$currentUser || ($item['user_id'] ?? '') !== ($currentUser['id'] ?? '')) {
-      http_response_code(403);
-      $item = null;
+try {
+    if ((bool) cfg('AUTO_MIGRATE', true)) { migrate_if_needed(); }
+    $currentUser = current_user();
+    $id = (string) ($_GET['id'] ?? '');
+    $stmt = db()->prepare('SELECT * FROM generations WHERE id = ? LIMIT 1');
+    $stmt->execute([$id]);
+    $item = $stmt->fetch();
+
+    if (!$item) {
+        http_response_code(404);
     }
+    if ($item && (int)($item['is_public'] ?? 0) !== 1) {
+        if (!$currentUser || ($item['user_id'] ?? '') !== ($currentUser['id'] ?? '')) {
+          http_response_code(403);
+          $item = null;
+        }
+    }
+} catch (Throwable $e) {
+    $pageError = $e->getMessage();
+    http_response_code(500);
 }
 
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
@@ -61,6 +72,7 @@ function status_label(string $status): string {
   </nav>
 
   <div class="container">
+    <?php if ($pageError): ?><div class="banner">Unable to load media: <?=htmlspecialchars($pageError)?></div><?php endif; ?>
     <?php if (!$item): ?>
       <div class="card">
         <h1>Media not found</h1>

@@ -8,6 +8,15 @@ require_once __DIR__ . '/migrations.php';
 function start_session(): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
+        $lifetime = 60 * 60 * 24 * 14;
+        ini_set('session.gc_maxlifetime', (string) $lifetime);
+        session_set_cookie_params([
+            'lifetime' => $lifetime,
+            'path' => '/',
+            'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
         session_start();
     }
 }
