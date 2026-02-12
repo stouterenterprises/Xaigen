@@ -65,7 +65,7 @@ function status_label(string $status): string {
       <div id="nav-links" class="nav-links">
         <a href="/">Home</a>
         <a href="/app/create.php">Generator</a>
-        <a href="/app/gallery.php">Gallery</a>
+        <a href="/app/gallery.php">Gallery</a><a href="/app/customize.php">Customize</a>
         <?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php elseif(!empty($_SESSION['admin_user_id'])): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?>
       </div>
     </div>
