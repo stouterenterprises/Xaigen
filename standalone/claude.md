@@ -75,7 +75,8 @@ Negative prompt behavior:
 ## Manual FTP deployment instructions
 - Deployment workflow: `.github/workflows/deploy-ftp.yml`.
 - Trigger: `workflow_dispatch` only (manual only).
-- Uploads standalone content directly to live root (`LIVE_ROOT_PATH`).
+- Uses repo secrets: `PROD_FTP_HOST`, `PROD_FTP_USER`, `PROD_FTP_PASSWORD`, `PROD_ROOT_PATH`.
+- Uploads standalone content directly to live root (`PROD_ROOT_PATH`) using **FTPS (TLS)**.
 - No staging server used.
 
 ## Troubleshooting
