@@ -40,7 +40,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 
   <div class="container">
     <h1>Migrations</h1>
-    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
+    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
     <?php if ($msg): ?><div class="card"><?=htmlspecialchars($msg)?></div><?php endif; ?>
     <div class="card"><form method="post"><button type="submit">Run Migrations Now</button></form></div>
     <?php foreach ($status as $m): ?><div class="card"><?=htmlspecialchars($m['filename'])?> - <?=htmlspecialchars($m['state'])?></div><?php endforeach; ?>

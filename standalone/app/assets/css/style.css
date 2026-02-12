@@ -93,3 +93,5 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .model-link-card{display:flex;flex-direction:column;gap:4px;text-decoration:none}
 .model-link-card:hover{border-color:#3b82f6;text-decoration:none}
 .admin-model-form{display:flex;flex-direction:column;gap:8px}
+
+.banner-success{background:#123a1f;border:1px solid #2f8f4e;color:#c9ffd9}

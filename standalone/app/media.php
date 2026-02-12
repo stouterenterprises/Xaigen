@@ -1,8 +1,11 @@
 <?php
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/auth.php';
 require_installation();
 
+start_session();
+$currentUser = current_user();
 $id = (string) ($_GET['id'] ?? '');
 $stmt = db()->prepare('SELECT * FROM generations WHERE id = ? LIMIT 1');
 $stmt->execute([$id]);
@@ -10,6 +13,12 @@ $item = $stmt->fetch();
 
 if (!$item) {
     http_response_code(404);
+}
+if ($item && (int)($item['is_public'] ?? 0) !== 1) {
+    if (!$currentUser || ($item['user_id'] ?? '') !== ($currentUser['id'] ?? '')) {
+      http_response_code(403);
+      $item = null;
+    }
 }
 
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
@@ -46,6 +55,7 @@ function status_label(string $status): string {
         <a href="/">Home</a>
         <a href="/app/create.php">Generator</a>
         <a href="/app/gallery.php">Gallery</a>
+        <?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?>
         <a href="/admin/index.php">Admin</a>
       </div>
     </div>

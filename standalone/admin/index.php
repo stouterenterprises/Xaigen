@@ -8,14 +8,14 @@ start_session();
 $msg = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (admin_login((string)($_POST['username'] ?? ''), (string)($_POST['password'] ?? ''))) {
-        header('Location: /admin/keys.php');
+        header('Location: /admin/users.php');
         exit;
     }
     $msg = 'Invalid credentials';
 }
 
 if (!empty($_SESSION['admin_user_id'])) {
-    header('Location: /admin/keys.php');
+    header('Location: /admin/users.php');
     exit;
 }
 
@@ -53,7 +53,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
         <div class="row"><input type="password" name="password" placeholder="Password" required></div>
         <button type="submit">Login</button>
       </form>
-      <p><a href="/app/create.php">Back to app</a></p>
+      <p><a href="/app/create.php">Back to app</a> | <a href="/app/login.php">User login / create user request</a></p>
     </div>
   </div>
 
