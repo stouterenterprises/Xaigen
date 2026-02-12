@@ -77,7 +77,9 @@ function status_label(string $status): string {
             <?php endif; ?>
           </div>
           <div class="gallery-actions media-viewer-actions">
-            <a class="btn btn-secondary" href="/api/download.php?id=<?=urlencode((string)$item['id'])?>">Download</a>
+            <?php if (strtolower((string)($item['status'] ?? '')) === 'succeeded'): ?>
+              <a class="btn btn-secondary" href="/api/download.php?id=<?=urlencode((string)$item['id'])?>">Download</a>
+            <?php endif; ?>
             <a class="btn" href="/app/gallery.php">Back to Gallery</a>
           </div>
         <?php else: ?>

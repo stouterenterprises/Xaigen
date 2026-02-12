@@ -71,7 +71,8 @@ async function loadHistory(){
   (data.items||[]).forEach(item=>{
     const div=document.createElement('div');
     div.className='card history-item';
-    div.innerHTML=`${mediaPreviewHtml(item)}<div class="history-content">${historyDetailsHtml(item)}<div class="history-actions">${item.output_path?`<a class="btn btn-secondary" href="/api/download.php?id=${encodeURIComponent(item.id)}">Download</a>`:''}<button class="btn btn-danger js-delete-generation" type="button" data-id="${escapeHtml(item.id)}">Delete</button></div></div>`;
+    const canDownload = item.output_path && String(item.status || '').toLowerCase() === 'succeeded';
+    div.innerHTML=`${mediaPreviewHtml(item)}<div class="history-content">${historyDetailsHtml(item)}<div class="history-actions">${canDownload?`<a class="btn btn-secondary" href="/api/download.php?id=${encodeURIComponent(item.id)}">Download</a>`:''}<button class="btn btn-danger js-delete-generation" type="button" data-id="${escapeHtml(item.id)}">Delete</button></div></div>`;
     box.appendChild(div);
   });
 }
