@@ -38,7 +38,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 
   <div class="container">
     <h1>Settings</h1>
-    <p><a href="/admin/keys.php">Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
+    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
     <div class="card"><form method="post"><textarea name="defaults_json" rows="12"><?=htmlspecialchars($val)?></textarea><button type="submit">Save</button></form></div>
   </div>
 

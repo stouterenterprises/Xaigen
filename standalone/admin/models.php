@@ -61,7 +61,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 
   <div class="container">
     <h1>Models</h1>
-    <p><a href="/admin/keys.php">Keys</a> | <a href="/admin/settings.php">Settings</a> | <a href="/admin/migrations.php">Migrations</a></p>
+    <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/migrations.php">Migrations</a></p>
     <div class="card"><form method="post"><input name="id" placeholder="Leave blank for new"><input name="type" placeholder="image/video" required><input name="model_key" required><input name="display_name" required><label><input type="checkbox" name="supports_negative_prompt" checked> Supports negative prompt</label><label><input type="checkbox" name="is_active" checked> Active</label><button type="submit">Save</button></form></div>
     <?php foreach ($rows as $r): ?><div class="card"><?=htmlspecialchars($r['type'])?> - <?=htmlspecialchars($r['display_name'])?> (<?=htmlspecialchars($r['model_key'])?>)</div><?php endforeach; ?>
   </div>
