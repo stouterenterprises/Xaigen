@@ -142,3 +142,6 @@ Negative prompt behavior:
   - `/app/parts.php` supports private/public body-part variation libraries with up to 40 mixed image/video assets.
 - New migration `0007_characters_scenes_parts.sql` adds `characters`, `character_media`, `scenes`, `scene_media`, `parts`, and `part_media` tables used by the generator selectors and library pages.
 - Generator model dropdown now truly re-renders per tab, so the Image tab only contains image models and the Video tab only contains video models.
+- Session handling now sets secure/HttpOnly/Lax cookies with a 14-day lifetime (`session.gc_maxlifetime` + cookie lifetime), so user/admin sign-ins persist for roughly two weeks unless explicitly logged out.
+- App pages (`/app/create.php`, `/app/gallery.php`, `/app/media.php`, `/app/characters.php`, `/app/scenes.php`, `/app/parts.php`) now guard initial DB load paths with exception handling and render inline error banners instead of failing as blank white pages when migrations/DB queries fail.
+

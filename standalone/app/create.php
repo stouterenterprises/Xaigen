@@ -6,6 +6,18 @@ require_once __DIR__ . '/../lib/app_settings.php';
 require_once __DIR__ . '/../lib/migrations.php';
 require_installation();
 start_session();
+
+$models = [];
+$hasApi = false;
+$currentUser = null;
+$hasActiveAccount = false;
+$defaults = get_generation_defaults();
+$characters = [];
+$scenes = [];
+$parts = [];
+$pageError = '';
+
+try {
 if ((bool) cfg('AUTO_MIGRATE', true)) { migrate_if_needed(); }
 
 $models = db()->query("SELECT * FROM models WHERE is_active = 1 ORDER BY type, display_name")->fetchAll();
@@ -13,7 +25,6 @@ $apiRows = db()->query("SELECT COUNT(*) AS c FROM api_keys WHERE provider='xai' 
 $hasApi = (int)($apiRows['c'] ?? 0) > 0;
 $currentUser = current_user();
 $hasActiveAccount = !empty($_SESSION['admin_user_id']) || (($currentUser['status'] ?? '') === 'active');
-$defaults = get_generation_defaults();
 $visibilityWhere = !empty($_SESSION['admin_user_id']) ? '1=1' : '(user_id = :user_id OR is_public = 1)';
 $characterStmt = db()->prepare("SELECT c.id, c.name, cm.media_path AS thumbnail_path FROM characters c LEFT JOIN character_media cm ON cm.character_id=c.id WHERE {$visibilityWhere} GROUP BY c.id ORDER BY c.created_at DESC");
 if (!empty($_SESSION['admin_user_id'])) { $characterStmt->execute(); } else { $characterStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
@@ -24,6 +35,9 @@ $scenes = $sceneStmt->fetchAll();
 $partStmt = db()->prepare("SELECT p.id, p.name, pm.media_path AS thumbnail_path FROM parts p LEFT JOIN part_media pm ON pm.part_id=p.id WHERE {$visibilityWhere} GROUP BY p.id ORDER BY p.created_at DESC");
 if (!empty($_SESSION['admin_user_id'])) { $partStmt->execute(); } else { $partStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
 $parts = $partStmt->fetchAll();
+} catch (Throwable $e) {
+  $pageError = $e->getMessage();
+}
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
@@ -34,6 +48,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><a href="/app/characters.php">Characters</a><a href="/app/scenes.php">Scenes</a><a href="/app/parts.php">Parts</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php elseif(!empty($_SESSION['admin_user_id'])): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?></div></div></nav>
 <div class="container">
 <h1>Image + Video Generation Studio</h1>
+<?php if($pageError): ?><div class="banner">Unable to load generator data: <?=htmlspecialchars($pageError)?></div><?php endif; ?>
 <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
 <?php if(!$hasActiveAccount): ?><div class="banner">You need an active account to generate. Please login or request access.</div><?php endif; ?>
 <div class="grid"><div class="card"><h3>Create</h3><form id="generateForm">
