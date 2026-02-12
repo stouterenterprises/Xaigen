@@ -124,7 +124,8 @@ Negative prompt behavior:
 - The shared body background uses a single non-repeating top radial glow over a dark base color to avoid tiled/repeating artifacts on long mobile pages (e.g., gallery).
 - Form submit buttons in studio pages use `.form-btn`; global form control width rules intentionally avoid all `<button>` elements so the mobile menu toggle retains intrinsic width.
 - Mobile nav keeps the menu button at intrinsic width and opens a stacked dropdown panel to avoid full-width button overlap and cramped inline link wrapping in portrait layouts.
-- User accounts are now supported through `/app/login.php` with self-service account requests (`name`, `username`, `email`, `purpose`, `password`) that enter a pending review queue.
+- `/app/login.php` is now the single shared login entry for both users and admins; the login form accepts admin usernames and redirects successful admin sign-ins to `/admin/users.php`.
+- The login view links to account requests with a `Create Account` link that opens the create user request form (`/app/login.php?view=register`).
 - Admins review/approve/reject user requests at `/admin/users.php`; admin section link rows now include **Users**.
 - Generation requests now require an active account (`users.status = active`) or an authenticated admin session, and the generator submit button is disabled for non-approved visitors.
 - `generations` now track `user_id` ownership and `is_public` visibility. Logged-in users see only their own generations in history/gallery; logged-out visitors see only public shared items.
