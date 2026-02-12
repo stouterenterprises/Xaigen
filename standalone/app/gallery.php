@@ -3,6 +3,8 @@ require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db.php';
 require_installation();
 $items = db()->query("SELECT * FROM generations WHERE status='succeeded' ORDER BY created_at DESC LIMIT 50")->fetchAll();
+$styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
+$scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
 <!doctype html>
 <html>
@@ -10,7 +12,7 @@ $items = db()->query("SELECT * FROM generations WHERE status='succeeded' ORDER B
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Gallery</title>
-  <link rel="stylesheet" href="/app/assets/css/style.css">
+  <link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>">
 </head>
 <body>
   <nav class="site-nav">
@@ -32,6 +34,6 @@ $items = db()->query("SELECT * FROM generations WHERE status='succeeded' ORDER B
       <div class="card"><strong><?=htmlspecialchars($g['model_key'])?></strong><br><?=htmlspecialchars($g['prompt'])?><br><?php if($g['output_path']): ?><a href="/api/download.php?id=<?=urlencode($g['id'])?>">Download output</a><?php endif; ?></div>
     <?php endforeach; ?>
   </div>
-  <script src="/app/assets/js/app.js"></script>
+  <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
 </body>
 </html>

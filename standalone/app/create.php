@@ -6,6 +6,8 @@ require_installation();
 $models = db()->query("SELECT * FROM models WHERE is_active = 1 ORDER BY type, display_name")->fetchAll();
 $apiRows = db()->query("SELECT COUNT(*) AS c FROM api_keys WHERE provider='xai' AND key_name='XAI_API_KEY' AND is_active=1")->fetch();
 $hasApi = (int)($apiRows['c'] ?? 0) > 0;
+$styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
+$scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
 <!doctype html>
 <html>
@@ -13,7 +15,7 @@ $hasApi = (int)($apiRows['c'] ?? 0) > 0;
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Generation Studio</title>
-  <link rel="stylesheet" href="/app/assets/css/style.css">
+  <link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>">
 </head>
 <body>
   <nav class="site-nav">
@@ -43,10 +45,10 @@ $hasApi = (int)($apiRows['c'] ?? 0) > 0;
       <div class="row"><label>Resolution</label><input name="resolution" value="1024x1024"></div>
       <div class="row"><label>Video duration</label><input name="duration_seconds" value="5"></div>
       <div class="row"><label>FPS</label><input name="fps" value="24"></div>
-      <button type="submit">Generate</button></form></div>
+      <button class="form-btn" type="submit">Generate</button></form></div>
       <div><div class="card"><h3>Preview + Status</h3><pre id="statusBox" class="muted">Submit a generation request.</pre></div><div id="historyBox"></div></div>
     </div>
   </div>
-  <script src="/app/assets/js/app.js"></script>
+  <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
 </body>
 </html>

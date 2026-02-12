@@ -15,7 +15,7 @@ a:hover{text-decoration:underline}
 .card{background:rgba(30,41,59,.86);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px}
 .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .row{margin-bottom:10px}
-input,select,textarea,button{width:100%;padding:10px;border-radius:8px;border:1px solid #475569;background:#0b1220;color:var(--text)}
+input,select,textarea,.form-btn{width:100%;padding:10px;border-radius:8px;border:1px solid #475569;background:#0b1220;color:var(--text)}
 button,.btn{cursor:pointer;background:var(--primary);border:none;color:#fff;padding:10px 16px;border-radius:8px;font-weight:600;display:inline-block}
 button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .btn-secondary{background:transparent;border:1px solid #475569}
@@ -28,6 +28,10 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .pill{display:inline-block;padding:6px 10px;background:#1e3a8a;border:1px solid #2563eb;border-radius:999px;font-size:.85rem}
 .hero-copy{font-size:1.02rem;max-width:55ch}
 .hero-actions{display:flex;gap:12px;flex-wrap:wrap;margin-top:18px}
+.hero-actions > a{display:inline-block;background:var(--primary);color:#fff;padding:10px 16px;border-radius:8px;font-weight:600;text-decoration:none}
+.hero-actions > a:hover{background:var(--primary-hover);text-decoration:none}
+.hero-actions > a.btn-secondary{background:transparent;border:1px solid #475569;color:var(--text)}
+.hero-actions > a.btn-secondary:hover{background:#1e293b}
 .feature-list{margin:0;padding-left:18px;line-height:1.8}
 .cards-three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;padding-bottom:28px}
 .showcase-card h3{margin-top:0}
