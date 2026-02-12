@@ -66,7 +66,17 @@ function prettyError(response, parsed, raw){
 async function submitGeneration(e){
   e.preventDefault();
   const form = e.target;
-  const payload = Object.fromEntries(new FormData(form).entries());
+  const formData = new FormData(form);
+  const payload = {};
+  formData.forEach((value, key)=>{
+    if(key.endsWith('[]')){
+      const normalized = key.slice(0, -2);
+      payload[normalized] = payload[normalized] || [];
+      payload[normalized].push(value);
+    } else {
+      payload[key] = value;
+    }
+  });
   payload.duration_seconds = parseFloat(payload.duration_seconds || '5');
   payload.fps = parseInt(payload.fps || '24', 10);
 
@@ -170,10 +180,12 @@ function setupGeneratorTabs(form){
   const modelSelect = form.querySelector('select[name="model_key"]');
   const promptInput = form.querySelector('textarea[name="prompt"]');
   const negativeInput = form.querySelector('textarea[name="negative_prompt"]');
+  const sceneSelect = form.querySelector('#sceneSelect');
+  const characterSelect = form.querySelector('#characterSelect');
   if(!tabs.length || !typeInput || !modelSelect || !promptInput || !negativeInput) return;
 
   const promptState = { image: { prompt: '', negative: '' }, video: { prompt: '', negative: '' } };
-
+  const allModelOptions = Array.from(modelSelect.options).map((opt)=>opt.cloneNode(true));
 
   const applyModelDefaults = () => {
     const selected = modelSelect.selectedOptions[0];
@@ -191,18 +203,26 @@ function setupGeneratorTabs(form){
   };
 
   const refreshModelVisibility = (type) => {
-    const options = Array.from(modelSelect.options);
-    let firstVisibleValue = '';
-    options.forEach((opt) => {
-      const show = (opt.getAttribute('data-model-type') || 'image') === type;
-      opt.hidden = !show;
-      if(show && !firstVisibleValue){
-        firstVisibleValue = opt.value;
-      }
-    });
+    const prevValue = modelSelect.value;
+    modelSelect.innerHTML = '';
+    const options = allModelOptions
+      .filter((opt) => (opt.getAttribute('data-model-type') || 'image') === type);
+    options.forEach((opt)=>modelSelect.appendChild(opt.cloneNode(true)));
+    if(options.find((opt)=>opt.value===prevValue)){
+      modelSelect.value = prevValue;
+    } else if(options[0]) {
+      modelSelect.value = options[0].value;
+    }
+  };
 
-    if(!modelSelect.value || modelSelect.selectedOptions[0]?.hidden){
-      modelSelect.value = firstVisibleValue;
+  const refreshSceneVisibility = (type) => {
+    if(!sceneSelect) return;
+    Array.from(sceneSelect.options).forEach((opt)=>{
+      if(!opt.value) return;
+      opt.hidden = (opt.getAttribute('data-scene-type') || 'image') !== type;
+    });
+    if(sceneSelect.selectedOptions[0]?.hidden){
+      sceneSelect.value = '';
     }
   };
 
@@ -223,15 +243,27 @@ function setupGeneratorTabs(form){
     promptInput.value = promptState[nextType].prompt || '';
     negativeInput.value = promptState[nextType].negative || '';
     refreshModelVisibility(nextType);
+    refreshSceneVisibility(nextType);
 
     document.querySelectorAll('.row-image-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'image'));
     document.querySelectorAll('.row-video-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'video'));
+    applyModelDefaults();
   };
+
+  if(characterSelect){
+    characterSelect.addEventListener('change', ()=>{
+      const max = parseInt(characterSelect.getAttribute('data-max-select') || '3', 10);
+      const selected = Array.from(characterSelect.selectedOptions);
+      if(selected.length > max){
+        selected[selected.length - 1].selected = false;
+        window.alert(`You can select up to ${max} characters.`);
+      }
+    });
+  }
 
   tabs.forEach((tab)=>tab.addEventListener('click', ()=>setType(tab.getAttribute('data-type-tab') || 'image')));
   modelSelect.addEventListener('change', applyModelDefaults);
   setType(typeInput.value || 'image');
-  applyModelDefaults();
 }
 
 document.addEventListener('DOMContentLoaded',()=>{

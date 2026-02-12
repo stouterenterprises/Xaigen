@@ -39,5 +39,8 @@ function validate_generation_payload(array $payload): array
         'resolution' => (string) ($payload['resolution'] ?? '1024x1024'),
         'duration_seconds' => isset($payload['duration_seconds']) ? (float) $payload['duration_seconds'] : 5.0,
         'fps' => isset($payload['fps']) ? (int) $payload['fps'] : 24,
+        'character_ids' => array_values(array_filter(array_map('strval', (array)($payload['character_ids'] ?? [])))),
+        'scene_id' => trim((string)($payload['scene_id'] ?? '')),
+        'part_ids' => array_values(array_filter(array_map('strval', (array)($payload['part_ids'] ?? [])))),
     ];
 }

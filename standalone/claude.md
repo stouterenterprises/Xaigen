@@ -135,3 +135,10 @@ Negative prompt behavior:
 - Gallery cards now include a share visibility toggle (`🔒 Private` / `🔗 Public`) so users can publish to the public gallery with username attribution.
 - Model configuration now supports individual default fields (`seed`, `aspect_ratio`, `resolution`, `duration_seconds`, `fps`) surfaced directly in admin settings, add-model dialog, and model edit pages.
 - Models page now uses a **New Model** button that opens an add-model dialog.
+- Generator now includes contextual selectors for up to 3 characters, one scene, and multiple parts; selected entity names are appended as creative context in the generation prompt and persisted in `params_json`.
+- New creator pages:
+  - `/app/characters.php` supports private/shared characters with metadata (age 20+, gender, penis size, boob size, height) and up to 20 reference photos.
+  - `/app/scenes.php` supports private/public scene libraries split by type (`image` vs `video`), enforcing image uploads for image scenes and video uploads for video scenes.
+  - `/app/parts.php` supports private/public body-part variation libraries with up to 40 mixed image/video assets.
+- New migration `0007_characters_scenes_parts.sql` adds `characters`, `character_media`, `scenes`, `scene_media`, `parts`, and `part_media` tables used by the generator selectors and library pages.
+- Generator model dropdown now truly re-renders per tab, so the Image tab only contains image models and the Video tab only contains video models.

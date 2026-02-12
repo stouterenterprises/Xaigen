@@ -3,8 +3,10 @@ require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/app_settings.php';
+require_once __DIR__ . '/../lib/migrations.php';
 require_installation();
 start_session();
+if ((bool) cfg('AUTO_MIGRATE', true)) { migrate_if_needed(); }
 
 $models = db()->query("SELECT * FROM models WHERE is_active = 1 ORDER BY type, display_name")->fetchAll();
 $apiRows = db()->query("SELECT COUNT(*) AS c FROM api_keys WHERE provider='xai' AND key_name='XAI_API_KEY' AND is_active=1")->fetch();
@@ -12,6 +14,16 @@ $hasApi = (int)($apiRows['c'] ?? 0) > 0;
 $currentUser = current_user();
 $hasActiveAccount = !empty($_SESSION['admin_user_id']) || (($currentUser['status'] ?? '') === 'active');
 $defaults = get_generation_defaults();
+$visibilityWhere = !empty($_SESSION['admin_user_id']) ? '1=1' : '(user_id = :user_id OR is_public = 1)';
+$characterStmt = db()->prepare("SELECT c.id, c.name, cm.media_path AS thumbnail_path FROM characters c LEFT JOIN character_media cm ON cm.character_id=c.id WHERE {$visibilityWhere} GROUP BY c.id ORDER BY c.created_at DESC");
+if (!empty($_SESSION['admin_user_id'])) { $characterStmt->execute(); } else { $characterStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
+$characters = $characterStmt->fetchAll();
+$sceneStmt = db()->prepare("SELECT s.id, s.name, s.type, sm.media_path AS thumbnail_path FROM scenes s LEFT JOIN scene_media sm ON sm.scene_id=s.id WHERE {$visibilityWhere} GROUP BY s.id ORDER BY s.created_at DESC");
+if (!empty($_SESSION['admin_user_id'])) { $sceneStmt->execute(); } else { $sceneStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
+$scenes = $sceneStmt->fetchAll();
+$partStmt = db()->prepare("SELECT p.id, p.name, pm.media_path AS thumbnail_path FROM parts p LEFT JOIN part_media pm ON pm.part_id=p.id WHERE {$visibilityWhere} GROUP BY p.id ORDER BY p.created_at DESC");
+if (!empty($_SESSION['admin_user_id'])) { $partStmt->execute(); } else { $partStmt->execute(['user_id'=>$currentUser['id'] ?? '']); }
+$parts = $partStmt->fetchAll();
 $styleVersion = @filemtime(__DIR__ . '/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
@@ -19,7 +31,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <html>
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Generation Studio</title><link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>"></head>
 <body>
-<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php elseif(!empty($_SESSION['admin_user_id'])): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?></div></div></nav>
+<nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/">Xaigen</a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><a href="/app/characters.php">Characters</a><a href="/app/scenes.php">Scenes</a><a href="/app/parts.php">Parts</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php elseif(!empty($_SESSION['admin_user_id'])): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?></div></div></nav>
 <div class="container">
 <h1>Image + Video Generation Studio</h1>
 <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
@@ -27,7 +39,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <div class="grid"><div class="card"><h3>Create</h3><form id="generateForm">
 <div class="generator-tabs" role="tablist" aria-label="Generation type"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-type-tab="image">Image</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-type-tab="video">Video</button></div>
 <input type="hidden" name="type" value="image">
-<div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars((string)$m['model_key'])?>" data-model-type="<?=htmlspecialchars((string)$m['type'])?>" data-default-seed="<?=htmlspecialchars((string)($m['default_seed'] ?? ''))?>" data-default-aspect-ratio="<?=htmlspecialchars((string)($m['default_aspect_ratio'] ?? ''))?>" data-default-resolution="<?=htmlspecialchars((string)($m['default_resolution'] ?? ''))?>" data-default-duration="<?=htmlspecialchars((string)($m['default_duration_seconds'] ?? ''))?>" data-default-fps="<?=htmlspecialchars((string)($m['default_fps'] ?? ''))?>"><?=htmlspecialchars((string)$m['display_name'])?> (<?=htmlspecialchars((string)$m['type'])?>)</option><?php endforeach; ?></select></div>
+<div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars((string)$m['model_key'])?>" data-model-type="<?=htmlspecialchars((string)$m['type'])?>" data-default-seed="<?=htmlspecialchars((string)($m['default_seed'] ?? ''))?>" data-default-aspect-ratio="<?=htmlspecialchars((string)($m['default_aspect_ratio'] ?? ''))?>" data-default-resolution="<?=htmlspecialchars((string)($m['default_resolution'] ?? ''))?>" data-default-duration="<?=htmlspecialchars((string)($m['default_duration_seconds'] ?? ''))?>" data-default-fps="<?=htmlspecialchars((string)($m['default_fps'] ?? ''))?>"><?=htmlspecialchars((string)$m['display_name'])?></option><?php endforeach; ?></select></div>
 <div class="row"><label>Prompt</label><textarea name="prompt" required></textarea></div>
 <div class="row"><label>Negative Prompt</label><textarea name="negative_prompt"></textarea></div>
 <div class="row row-image-only"><label>Seed</label><input name="seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
@@ -35,6 +47,9 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <div class="row"><label>Resolution</label><input name="resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>
 <div class="row row-video-only is-hidden"><label>Video duration</label><input name="duration_seconds" value="<?=htmlspecialchars((string)$defaults['duration_seconds'])?>"></div>
 <div class="row row-video-only is-hidden"><label>FPS</label><input name="fps" value="<?=htmlspecialchars((string)$defaults['fps'])?>"></div>
+<div class="row"><label>Characters (up to 3)</label><select name="character_ids[]" id="characterSelect" multiple data-max-select="3"><?php foreach($characters as $c): ?><option value="<?=htmlspecialchars((string)$c['id'])?>" data-thumb="<?=htmlspecialchars((string)($c['thumbnail_path'] ?? ''))?>"><?=htmlspecialchars((string)$c['name'])?></option><?php endforeach; ?></select><small class="muted">Pick up to three characters.</small></div>
+<div class="row"><label>Scene</label><select name="scene_id" id="sceneSelect"><option value="">None</option><?php foreach($scenes as $scene): ?><option value="<?=htmlspecialchars((string)$scene['id'])?>" data-scene-type="<?=htmlspecialchars((string)$scene['type'])?>" data-thumb="<?=htmlspecialchars((string)($scene['thumbnail_path'] ?? ''))?>">[<?=htmlspecialchars((string)$scene['type'])?>] <?=htmlspecialchars((string)$scene['name'])?></option><?php endforeach; ?></select></div>
+<div class="row"><label>Parts (multi-select)</label><select name="part_ids[]" id="partSelect" multiple><?php foreach($parts as $part): ?><option value="<?=htmlspecialchars((string)$part['id'])?>" data-thumb="<?=htmlspecialchars((string)($part['thumbnail_path'] ?? ''))?>"><?=htmlspecialchars((string)$part['name'])?></option><?php endforeach; ?></select></div>
 <button class="form-btn" type="submit" <?=$hasActiveAccount ? '' : 'disabled'?>>Generate</button></form></div><div><div class="card"><h3>Preview + Status</h3><pre id="statusBox" class="muted">Submit a generation request.</pre></div><div id="historyBox"></div></div></div>
 </div>
 <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
