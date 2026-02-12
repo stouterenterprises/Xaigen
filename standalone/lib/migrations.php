@@ -70,17 +70,25 @@ function migrate_if_needed(): void
         }
 
         $sql = file_get_contents($path);
-        $pdo->beginTransaction();
+        $startedTransaction = false;
         try {
+            if (!$pdo->inTransaction()) {
+                $startedTransaction = $pdo->beginTransaction();
+            }
+
             $pdo->exec($sql);
             $stmt = $pdo->prepare('INSERT INTO schema_migrations (filename, checksum, applied_at) VALUES (?, ?, ?)');
             $stmt->execute([$filename, $checksum, now_utc()]);
-            $pdo->commit();
+
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->commit();
+            }
         } catch (Throwable $e) {
-            if ($pdo->inTransaction()) {
+            if ($startedTransaction && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
-            throw $e;
+
+            throw new RuntimeException("Failed applying migration {$filename}: " . $e->getMessage(), 0, $e);
         }
     }
 }
