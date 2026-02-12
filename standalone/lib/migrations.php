@@ -77,7 +77,9 @@ function migrate_if_needed(): void
             $stmt->execute([$filename, $checksum, now_utc()]);
             $pdo->commit();
         } catch (Throwable $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             throw $e;
         }
     }
