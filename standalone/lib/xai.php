@@ -43,6 +43,25 @@ function xai_base_url(): string
     return 'https://api.x.ai/v1';
 }
 
+function describe_xai_error(array $body): string
+{
+    $candidates = [
+        $body['error']['message'] ?? null,
+        $body['error_description'] ?? null,
+        $body['message'] ?? null,
+        $body['detail'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+
+    $encoded = json_encode($body, JSON_UNESCAPED_SLASHES);
+    return is_string($encoded) && $encoded !== '' ? substr($encoded, 0, 600) : 'No additional details returned by provider.';
+}
+
 function xai_request(string $method, string $endpoint, array $payload): array
 {
     $apiKey = round_robin_pick_api_key();
@@ -70,28 +89,67 @@ function xai_request(string $method, string $endpoint, array $payload): array
     $response = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if ($response === false) {
-        throw new RuntimeException('xAI request failed: ' . curl_error($ch));
+        throw new RuntimeException('xAI request failed (' . $method . ' ' . $endpoint . '): ' . curl_error($ch));
     }
     curl_close($ch);
 
     $json = json_decode($response, true);
-    return ['status' => $code, 'body' => is_array($json) ? $json : ['raw' => $response]];
+    $body = is_array($json) ? $json : ['raw' => $response];
+
+    if ($code >= 400) {
+        throw new RuntimeException(sprintf(
+            'xAI %s %s returned HTTP %d: %s',
+            strtoupper($method),
+            $endpoint,
+            $code,
+            describe_xai_error($body)
+        ));
+    }
+
+    return ['status' => $code, 'body' => $body];
 }
 
-function generate_image(array $job, bool $supportsNegativePrompt): array
+function merge_model_prompt(string $modelPrompt, string $userPrompt): string
 {
-    $prompt = $job['prompt'];
-    $params = json_decode((string) $job['params_json'], true) ?: [];
+    $modelPrompt = trim($modelPrompt);
+    $userPrompt = trim($userPrompt);
+    if ($modelPrompt === '') {
+        return $userPrompt;
+    }
+    if ($userPrompt === '') {
+        return $modelPrompt;
+    }
+    return $modelPrompt . "\n\n" . $userPrompt;
+}
 
-    if (!$supportsNegativePrompt && !empty($job['negative_prompt'])) {
-        $prompt .= "\nAvoid: " . $job['negative_prompt'];
+function merge_model_negative_prompt(string $modelNegativePrompt, string $userNegativePrompt): string
+{
+    $modelNegativePrompt = trim($modelNegativePrompt);
+    $userNegativePrompt = trim($userNegativePrompt);
+    if ($modelNegativePrompt === '') {
+        return $userNegativePrompt;
+    }
+    if ($userNegativePrompt === '') {
+        return $modelNegativePrompt;
+    }
+    return $userNegativePrompt . "\n" . $modelNegativePrompt;
+}
+
+function generate_image(array $job, bool $supportsNegativePrompt, array $model): array
+{
+    $params = json_decode((string) $job['params_json'], true) ?: [];
+    $prompt = merge_model_prompt((string) ($model['custom_prompt'] ?? ''), (string) $job['prompt']);
+    $negativePrompt = merge_model_negative_prompt((string) ($model['custom_negative_prompt'] ?? ''), (string) ($job['negative_prompt'] ?? ''));
+
+    if (!$supportsNegativePrompt && $negativePrompt !== '') {
+        $prompt .= "\nAvoid: " . $negativePrompt;
         $params['negative_prompt_fallback'] = true;
     }
 
     $payload = [
         'model' => $job['model_key'],
         'prompt' => $prompt,
-        'negative_prompt' => $supportsNegativePrompt ? $job['negative_prompt'] : null,
+        'negative_prompt' => $supportsNegativePrompt ? $negativePrompt : null,
         'seed' => $params['seed'] ?? null,
         'size' => $params['resolution'] ?? '1024x1024',
     ];
@@ -99,20 +157,21 @@ function generate_image(array $job, bool $supportsNegativePrompt): array
     return xai_request('POST', '/images/generations', $payload);
 }
 
-function generate_video(array $job, bool $supportsNegativePrompt): array
+function generate_video(array $job, bool $supportsNegativePrompt, array $model): array
 {
-    $prompt = $job['prompt'];
     $params = json_decode((string) $job['params_json'], true) ?: [];
+    $prompt = merge_model_prompt((string) ($model['custom_prompt'] ?? ''), (string) $job['prompt']);
+    $negativePrompt = merge_model_negative_prompt((string) ($model['custom_negative_prompt'] ?? ''), (string) ($job['negative_prompt'] ?? ''));
 
-    if (!$supportsNegativePrompt && !empty($job['negative_prompt'])) {
-        $prompt .= "\nAvoid: " . $job['negative_prompt'];
+    if (!$supportsNegativePrompt && $negativePrompt !== '') {
+        $prompt .= "\nAvoid: " . $negativePrompt;
         $params['negative_prompt_fallback'] = true;
     }
 
     $payload = [
         'model' => $job['model_key'],
         'prompt' => $prompt,
-        'negative_prompt' => $supportsNegativePrompt ? $job['negative_prompt'] : null,
+        'negative_prompt' => $supportsNegativePrompt ? $negativePrompt : null,
         'duration' => $params['duration_seconds'] ?? 5,
         'fps' => $params['fps'] ?? 24,
         'resolution' => $params['resolution'] ?? '1280x720',

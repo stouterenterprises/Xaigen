@@ -36,15 +36,19 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
     <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
     <div class="grid">
       <div class="card"><h3>Create</h3><form id="generateForm">
-      <div class="row"><label>Type</label><select name="type"><option value="image">Image</option><option value="video">Video</option></select></div>
-      <div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars($m['model_key'])?>"><?=htmlspecialchars($m['display_name'])?> (<?=htmlspecialchars($m['type'])?>)</option><?php endforeach; ?></select></div>
+      <div class="generator-tabs" role="tablist" aria-label="Generation type">
+        <button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-type-tab="image">Image</button>
+        <button class="generator-tab" type="button" role="tab" aria-selected="false" data-type-tab="video">Video</button>
+      </div>
+      <input type="hidden" name="type" value="image">
+      <div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars($m['model_key'])?>" data-model-type="<?=htmlspecialchars($m['type'])?>"><?=htmlspecialchars($m['display_name'])?> (<?=htmlspecialchars($m['type'])?>)</option><?php endforeach; ?></select></div>
       <div class="row"><label>Prompt</label><textarea name="prompt" required></textarea></div>
       <div class="row"><label>Negative Prompt</label><textarea name="negative_prompt"></textarea></div>
-      <div class="row"><label>Seed</label><input name="seed"></div>
-      <div class="row"><label>Aspect ratio</label><input name="aspect_ratio" value="16:9"></div>
+      <div class="row row-image-only"><label>Seed</label><input name="seed"></div>
+      <div class="row row-image-only"><label>Aspect ratio</label><input name="aspect_ratio" value="16:9"></div>
       <div class="row"><label>Resolution</label><input name="resolution" value="1024x1024"></div>
-      <div class="row"><label>Video duration</label><input name="duration_seconds" value="5"></div>
-      <div class="row"><label>FPS</label><input name="fps" value="24"></div>
+      <div class="row row-video-only is-hidden"><label>Video duration</label><input name="duration_seconds" value="5"></div>
+      <div class="row row-video-only is-hidden"><label>FPS</label><input name="fps" value="24"></div>
       <button class="form-btn" type="submit">Generate</button></form></div>
       <div><div class="card"><h3>Preview + Status</h3><pre id="statusBox" class="muted">Submit a generation request.</pre></div><div id="historyBox"></div></div>
     </div>

@@ -85,3 +85,11 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .media-viewer-stage{background:#020617;border:1px solid #334155;border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:center;min-height:280px}
 .media-viewer-stage img,.media-viewer-stage video{max-width:100%;max-height:75vh;border-radius:8px;display:block}
 .media-viewer-actions{margin-top:4px}
+
+.generator-tabs{display:flex;gap:8px;margin-bottom:12px}
+.generator-tab{flex:1;background:#0b1220;border:1px solid #334155;color:var(--text)}
+.generator-tab.is-active{background:#1d4ed8;border-color:#2563eb}
+.is-hidden{display:none}
+.model-link-card{display:flex;flex-direction:column;gap:4px;text-decoration:none}
+.model-link-card:hover{border-color:#3b82f6;text-decoration:none}
+.admin-model-form{display:flex;flex-direction:column;gap:8px}

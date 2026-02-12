@@ -178,7 +178,7 @@ function process_running_job(array $job): array
     }
 
     if (empty($job['external_job_id'])) {
-        $message = 'Running job is missing external_job_id.';
+        $message = 'Running job is missing external_job_id. The provider accepted the request but did not return a trackable job id.';
         mark_failed($job, $message);
         return ['ok' => false, 'error' => $message, 'id' => $job['id'], 'status' => 'failed'];
     }
@@ -203,6 +203,7 @@ function process_running_job(array $job): array
 
         if ($state === 'failed' || $state === 'error' || $state === 'cancelled') {
             $message = (string) ($body['error']['message'] ?? $body['message'] ?? 'Generation failed while polling.');
+            $message = 'Provider polling returned a failed state: ' . $message;
             mark_failed($job, $message);
             return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
         }
@@ -238,8 +239,8 @@ function process_one_queued_job(): array
 
     try {
         $response = $job['type'] === 'video'
-            ? generate_video($job, (bool) $model['supports_negative_prompt'])
-            : generate_image($job, (bool) $model['supports_negative_prompt']);
+            ? generate_video($job, (bool) $model['supports_negative_prompt'], $model)
+            : generate_image($job, (bool) $model['supports_negative_prompt'], $model);
 
         $body = $response['body'];
         $external = extract_external_job_id($body);
@@ -257,6 +258,12 @@ function process_one_queued_job(): array
         if ($output !== null) {
             mark_succeeded($job, is_string($external) ? $external : null, $output);
             return ['ok' => true, 'id' => $job['id'], 'status' => 'succeeded'];
+        }
+
+        if ($external === null && $output === null) {
+            $message = 'Provider response did not include output media or a job id to poll. Check model endpoint configuration and provider payload shape.';
+            mark_failed($job, $message);
+            return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
         }
 
         db()->prepare("UPDATE generations SET external_job_id=?, output_path=?, output_mime=? WHERE id=?")
