@@ -51,16 +51,21 @@ function xai_request(string $method, string $endpoint, array $payload): array
     }
 
     $ch = curl_init(xai_base_url() . $endpoint);
-    curl_setopt_array($ch, [
+    $curlOptions = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST => $method,
         CURLOPT_HTTPHEADER => [
             'Authorization: Bearer ' . $apiKey,
             'Content-Type: application/json',
         ],
-        CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_SLASHES),
         CURLOPT_TIMEOUT => (int) cfg('XAI_TIMEOUT_SECONDS', 60),
-    ]);
+    ];
+
+    if (strtoupper($method) !== 'GET') {
+        $curlOptions[CURLOPT_POSTFIELDS] = json_encode($payload, JSON_UNESCAPED_SLASHES);
+    }
+
+    curl_setopt_array($ch, $curlOptions);
 
     $response = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
