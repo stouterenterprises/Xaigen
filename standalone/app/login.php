@@ -8,6 +8,8 @@ start_session();
 $message = '';
 $messageType = '';
 $view = (string) ($_GET['view'] ?? 'login');
+$isAdmin = is_admin_logged_in();
+$currentUser = current_user();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? 'login');
@@ -32,18 +34,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $identifier = (string) ($_POST['username_or_email'] ?? '');
         $password = (string) ($_POST['password'] ?? '');
 
-        if (admin_login($identifier, $password)) {
-            header('Location: /admin/users.php');
-            exit;
-        }
+        try {
+            if (admin_login($identifier, $password)) {
+                header('Location: /admin/users.php');
+                exit;
+            }
 
-        $result = user_login($identifier, $password);
-        if (!empty($result['ok'])) {
-            header('Location: /app/create.php');
-            exit;
+            $result = user_login($identifier, $password);
+            if (!empty($result['ok'])) {
+                header('Location: /app/create.php');
+                exit;
+            }
+            $message = (string) ($result['error'] ?? 'Login failed.');
+            $messageType = 'error';
+        } catch (Throwable $e) {
+            $message = 'Sign-in failed due to a server error: ' . $e->getMessage();
+            $messageType = 'error';
         }
-        $message = (string) ($result['error'] ?? 'Login failed.');
-        $messageType = 'error';
     }
 }
 
@@ -67,8 +74,14 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
         <a href="/">Home</a>
         <a href="/app/create.php">Generator</a>
         <a href="/app/gallery.php">Gallery</a>
-        <a href="/app/login.php">Login</a>
-        <a href="/admin/index.php">Admin</a>
+        <?php if ($currentUser): ?>
+          <a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a>
+        <?php elseif ($isAdmin): ?>
+          <a href="/admin/index.php">Admin</a>
+          <a href="/admin/logout.php">Logout (Admin)</a>
+        <?php else: ?>
+          <a href="/app/login.php">Login</a>
+        <?php endif; ?>
       </div>
     </div>
   </nav>

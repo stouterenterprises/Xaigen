@@ -147,6 +147,12 @@ function current_admin_username(): ?string
     return $_SESSION['admin_username'] ?? null;
 }
 
+function is_admin_logged_in(): bool
+{
+    start_session();
+    return !empty($_SESSION['admin_user_id']);
+}
+
 function admin_logout(): void
 {
     start_session();
