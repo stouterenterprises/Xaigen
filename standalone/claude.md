@@ -99,6 +99,7 @@ Negative prompt behavior:
 - Public pages append a `?v=<filemtime>` cache-busting query string to shared CSS/JS includes so nav/button UI updates are not blocked by stale browser/CDN caches.
 - Admin pages also use the shared global navbar + shared CSS/JS includes (with `?v=<filemtime>` cache busting) so mobile navigation and visual styling stay consistent across the entire site.
 - Admin management pages (`/admin/settings.php`, `/admin/keys.php`, `/admin/models.php`, `/admin/migrations.php`) share the same in-page admin link row so navigation stays stable while switching sections; the logout link is intentionally omitted from that row.
+- `/admin/keys.php` uses an **Add Key** button that opens a modal dialog for key creation; the old inline "Leave blank for new" ID field is removed from the create flow.
 - The shared body background uses a single non-repeating top radial glow over a dark base color to avoid tiled/repeating artifacts on long mobile pages (e.g., gallery).
 - Form submit buttons in studio pages use `.form-btn`; global form control width rules intentionally avoid all `<button>` elements so the mobile menu toggle retains intrinsic width.
 - Mobile nav keeps the menu button at intrinsic width and opens a stacked dropdown panel to avoid full-width button overlap and cramped inline link wrapping in portrait layouts.
