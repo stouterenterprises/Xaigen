@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS generations (
+  id CHAR(36) PRIMARY KEY,
+  type ENUM('image','video'),
+  model_key VARCHAR(128),
+  prompt TEXT,
+  negative_prompt TEXT,
+  params_json TEXT,
+  status ENUM('queued','running','succeeded','failed'),
+  external_job_id VARCHAR(255),
+  output_path TEXT,
+  output_mime VARCHAR(128),
+  width INT,
+  height INT,
+  duration_seconds DECIMAL(6,2),
+  fps INT,
+  error_message TEXT,
+  created_at DATETIME,
+  started_at DATETIME,
+  finished_at DATETIME,
+  INDEX idx_status_created (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
