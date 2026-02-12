@@ -91,10 +91,46 @@ function mark_succeeded(array $job, ?string $external, string $output): void
         ->execute([$external, $output, $job['type'] === 'video' ? 'video/mp4' : 'image/png', now_utc(), $job['id']]);
 }
 
+function mark_failed(array $job, string $message): void
+{
+    db()->prepare("UPDATE generations SET status='failed', error_message=?, finished_at=? WHERE id=?")
+        ->execute([$message, now_utc(), $job['id']]);
+}
+
+function elapsed_seconds(array $job): ?int
+{
+    $startedAt = (string) ($job['started_at'] ?? $job['created_at'] ?? '');
+    if ($startedAt === '') {
+        return null;
+    }
+
+    $startedTs = strtotime($startedAt);
+    if ($startedTs === false) {
+        return null;
+    }
+
+    return max(0, time() - $startedTs);
+}
+
 function process_running_job(array $job): array
 {
+    $timeoutSeconds = (int) cfg('GENERATION_TIMEOUT_SECONDS', 3600);
+    if ($timeoutSeconds > 0) {
+        $elapsed = elapsed_seconds($job);
+        if ($elapsed !== null && $elapsed >= $timeoutSeconds) {
+            $message = sprintf(
+                'Generation timed out after %d minutes without a final result.',
+                (int) floor($timeoutSeconds / 60)
+            );
+            mark_failed($job, $message);
+            return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
+        }
+    }
+
     if (empty($job['external_job_id'])) {
-        return ['ok' => false, 'error' => 'Running job is missing external_job_id', 'id' => $job['id']];
+        $message = 'Running job is missing external_job_id.';
+        mark_failed($job, $message);
+        return ['ok' => false, 'error' => $message, 'id' => $job['id'], 'status' => 'failed'];
     }
 
     try {
@@ -117,8 +153,7 @@ function process_running_job(array $job): array
 
         if ($state === 'failed' || $state === 'error' || $state === 'cancelled') {
             $message = (string) ($body['error']['message'] ?? $body['message'] ?? 'Generation failed while polling.');
-            db()->prepare("UPDATE generations SET status='failed', error_message=?, finished_at=? WHERE id=?")
-                ->execute([$message, now_utc(), $job['id']]);
+            mark_failed($job, $message);
             return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
         }
 
@@ -171,8 +206,7 @@ function process_one_queued_job(): array
 
         return ['ok' => true, 'id' => $job['id'], 'status' => 'running'];
     } catch (Throwable $e) {
-        db()->prepare("UPDATE generations SET status='failed', error_message=?, finished_at=? WHERE id=?")
-            ->execute([$e->getMessage(), now_utc(), $job['id']]);
+        mark_failed($job, $e->getMessage());
         return ['ok' => false, 'error' => $e->getMessage(), 'id' => $job['id']];
     }
 }
