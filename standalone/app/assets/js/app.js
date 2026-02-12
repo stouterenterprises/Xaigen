@@ -7,23 +7,35 @@ function escapeHtml(value){
     .replaceAll("'",'&#39;');
 }
 
+function statusDisplay(status){
+  const normalized = String(status || '').toLowerCase();
+  if(normalized === 'queued' || normalized === 'running') return 'Generating';
+  if(normalized === 'succeeded') return 'Generated';
+  if(normalized === 'failed') return 'Failed';
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : 'Unknown';
+}
+
+function mediaViewUrl(item){
+  return `/app/media.php?id=${encodeURIComponent(item.id)}`;
+}
+
 function mediaPreviewHtml(item){
   if(!item.output_path){
     return '<div class="history-thumb history-thumb-empty"><span>No preview yet</span></div>';
   }
 
   if(item.type === 'video'){
-    return `<a class="history-thumb" href="${escapeHtml(item.output_path)}" target="_blank" rel="noopener"><video src="${escapeHtml(item.output_path)}" muted playsinline preload="metadata"></video></a>`;
+    return `<a class="history-thumb" href="${mediaViewUrl(item)}"><video src="${escapeHtml(item.output_path)}" muted playsinline preload="metadata"></video></a>`;
   }
 
-  return `<a class="history-thumb" href="${escapeHtml(item.output_path)}" target="_blank" rel="noopener"><img src="${escapeHtml(item.output_path)}" alt="Generated output preview"></a>`;
+  return `<a class="history-thumb" href="${mediaViewUrl(item)}"><img src="${escapeHtml(item.output_path)}" alt="Generated output preview"></a>`;
 }
 
 function historyDetailsHtml(item){
   const title = `<strong>${escapeHtml(item.type)}</strong> • ${escapeHtml(item.model_key)}`;
   const prompt = item.prompt ? `<span>${escapeHtml(item.prompt)}</span>` : '';
-  const meta = `<small>${escapeHtml(item.status)}</small>`;
-  const linkStart = item.output_path ? `<a class="history-main-link" href="${escapeHtml(item.output_path)}" target="_blank" rel="noopener">` : '<div class="history-main-link">';
+  const meta = `<small class="status-pill status-${escapeHtml(String(item.status || '').toLowerCase())}">${escapeHtml(statusDisplay(item.status))}</small>`;
+  const linkStart = item.output_path ? `<a class="history-main-link" href="${mediaViewUrl(item)}">` : '<div class="history-main-link">';
   const linkEnd = item.output_path ? '</a>' : '</div>';
 
   return `${linkStart}${title}${meta}${prompt}${linkEnd}`;
