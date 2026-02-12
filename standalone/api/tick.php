@@ -35,6 +35,44 @@ function extract_output_url(array $body): ?string
     return null;
 }
 
+function extract_base64_output(array $body): ?string
+{
+    $candidates = [
+        $body['data'][0]['b64_json'] ?? null,
+        $body['result']['b64_json'] ?? null,
+        $body['output'][0]['b64_json'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return trim($candidate);
+        }
+    }
+
+    return null;
+}
+
+function persist_base64_image(array $job, string $base64): ?array
+{
+    $binary = base64_decode($base64, true);
+    if ($binary === false || $binary === '') {
+        return null;
+    }
+
+    $storageDir = app_root() . '/storage/generated';
+    if (!is_dir($storageDir) && !mkdir($storageDir, 0775, true) && !is_dir($storageDir)) {
+        return null;
+    }
+
+    $filename = $job['id'] . '_' . bin2hex(random_bytes(4)) . '.png';
+    $fullPath = $storageDir . '/' . $filename;
+    if (file_put_contents($fullPath, $binary) === false) {
+        return null;
+    }
+
+    return ['path' => $filename, 'mime' => 'image/png'];
+}
+
 function extract_preview_url(array $body): ?string
 {
     $candidates = [
@@ -71,9 +109,20 @@ function extract_external_job_id(array $body): ?string
     $candidates = [
         $body['id'] ?? null,
         $body['job_id'] ?? null,
+        $body['jobId'] ?? null,
+        $body['external_job_id'] ?? null,
+        $body['externalJobId'] ?? null,
+        $body['request_id'] ?? null,
+        $body['requestId'] ?? null,
         $body['job']['id'] ?? null,
+        $body['job']['job_id'] ?? null,
+        $body['job']['jobId'] ?? null,
         $body['data'][0]['id'] ?? null,
+        $body['data'][0]['job_id'] ?? null,
+        $body['data'][0]['jobId'] ?? null,
         $body['result']['id'] ?? null,
+        $body['result']['job_id'] ?? null,
+        $body['result']['jobId'] ?? null,
     ];
 
     foreach ($candidates as $candidate) {
@@ -87,8 +136,9 @@ function extract_external_job_id(array $body): ?string
 
 function mark_succeeded(array $job, ?string $external, string $output): void
 {
+    $mime = $job['type'] === 'video' ? 'video/mp4' : 'image/png';
     db()->prepare("UPDATE generations SET status='succeeded', external_job_id=?, output_path=?, output_mime=?, error_message=NULL, finished_at=? WHERE id=?")
-        ->execute([$external, $output, $job['type'] === 'video' ? 'video/mp4' : 'image/png', now_utc(), $job['id']]);
+        ->execute([$external, $output, $mime, now_utc(), $job['id']]);
 }
 
 function mark_failed(array $job, string $message): void
@@ -194,7 +244,15 @@ function process_one_queued_job(): array
         $body = $response['body'];
         $external = extract_external_job_id($body);
         $output = extract_output_url($body);
+        $base64Output = extract_base64_output($body);
         $preview = extract_preview_url($body);
+
+        if ($output === null && $base64Output !== null) {
+            $persisted = persist_base64_image($job, $base64Output);
+            if ($persisted !== null) {
+                $output = $persisted['path'];
+            }
+        }
 
         if ($output !== null) {
             mark_succeeded($job, is_string($external) ? $external : null, $output);
