@@ -85,6 +85,8 @@ Negative prompt behavior:
 - `/api/delete.php` deletes a generation row by id so users can remove items from gallery/history cards.
 - `api/tick.php` now supports async provider flows: if create returns only a job id, records stay `running` and later ticks poll `/jobs/{id}` until an output URL is available.
 - Generator history cards and `/app/gallery.php` render media thumbnails (image/video), make the content area clickable to open media, and provide Download + Delete actions.
+- `/app/gallery.php` now includes in-progress and completed generations with status badges (e.g., Generating, Generated, Failed), and each preview/title links to `/app/media.php?id=<generation-id>` for full-size viewing.
+- `/app/media.php` provides a dedicated full media viewer page (image/video), current generation status, and quick Download/Back actions.
 
 ## Troubleshooting
 - **Installer redirects unexpectedly**: check `installed.lock` presence.
@@ -98,7 +100,7 @@ Negative prompt behavior:
 ## UI routing and navigation notes
 - Main site entry now serves a marketing landing page at `/index.php` (root path `/`).
 - `/app/create.php` remains the generator workspace.
-- `/app/gallery.php` is the recent successful generations gallery.
+- `/app/gallery.php` shows recent generations across in-progress and completed states, including status badges.
 - A shared, mobile-responsive global navbar is used on the landing page and app pages (home/generator/gallery/admin links).
 - Shared styling is in `app/assets/css/style.css`; shared UI behaviors (including mobile nav toggle) are in `app/assets/js/app.js`.
 - Public pages append a `?v=<filemtime>` cache-busting query string to shared CSS/JS includes so nav/button UI updates are not blocked by stale browser/CDN caches.
