@@ -7,6 +7,7 @@ require_installation();
 
 start_session();
 $currentUser = null;
+$isAdmin = !empty($_SESSION['admin_user_id']);
 $item = null;
 $pageError = '';
 
@@ -22,7 +23,8 @@ try {
         http_response_code(404);
     }
     if ($item && (int)($item['is_public'] ?? 0) !== 1) {
-        if (!$currentUser || ($item['user_id'] ?? '') !== ($currentUser['id'] ?? '')) {
+        $ownsItem = $currentUser && (($item['user_id'] ?? '') === ($currentUser['id'] ?? ''));
+        if (!$isAdmin && !$ownsItem) {
           http_response_code(403);
           $item = null;
         }
@@ -47,6 +49,12 @@ function status_label(string $status): string {
         return 'Failed';
     }
     return $normalized === '' ? 'Unknown' : ucfirst($normalized);
+}
+
+$canManageItem = false;
+if ($item) {
+    $ownsItem = $currentUser && (($item['user_id'] ?? '') === ($currentUser['id'] ?? ''));
+    $canManageItem = $isAdmin || $ownsItem;
 }
 ?>
 <!doctype html>
@@ -100,6 +108,10 @@ function status_label(string $status): string {
           <div class="gallery-actions media-viewer-actions">
             <?php if (strtolower((string)($item['status'] ?? '')) === 'succeeded'): ?>
               <a class="btn btn-secondary" href="/api/download.php?id=<?=urlencode((string)$item['id'])?>">Download</a>
+            <?php endif; ?>
+            <?php if ($canManageItem): ?>
+              <button class="btn js-toggle-visibility" data-id="<?=htmlspecialchars((string)$item['id'])?>" data-public="<?=!empty($item['is_public']) ? '1':'0'?>" type="button"><?=!empty($item['is_public']) ? '🔗 Public' : '🔒 Private'?></button>
+              <button class="btn btn-danger js-delete-generation" data-id="<?=htmlspecialchars((string)$item['id'])?>" type="button">Delete</button>
             <?php endif; ?>
             <a class="btn" href="/app/gallery.php">Back to Gallery</a>
           </div>
