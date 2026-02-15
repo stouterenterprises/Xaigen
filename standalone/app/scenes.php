@@ -77,7 +77,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
     </dialog>
   <?php endif; ?>
 
-  <?php if(!$isAdminSession): ?><div class="models-toolbar"><button class="form-btn" type="button" id="openCreateSceneDialog">New Scene</button></div><?php endif; ?>
+  <div class="models-toolbar"><button class="form-btn" type="button" id="openCreateSceneDialog" <?=$isAdminSession ? 'disabled title="Switch to a user account to create scenes."' : ''?>>New Scene</button></div>
 
   <div class="card"><h3>Available Scenes</h3><div class="gallery-list"><?php foreach($items as $item): ?><article class="gallery-item card"><div class="gallery-preview"><?php if(!empty($item['thumbnail_path'])): ?><?php if(($item['type'] ?? 'image') === 'video'): ?><video src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" alt="Scene thumbnail"><?php endif; ?><?php endif; ?></div><div class="gallery-content"><strong><?=htmlspecialchars((string)$item['name'])?></strong><small class="muted"><?=htmlspecialchars((string)$item['type'])?> • <?=!empty($item['is_public']) ? 'Public' : 'Private'?></small><span><?=htmlspecialchars((string)($item['description'] ?? ''))?></span></div></article><?php endforeach; ?></div></div>
 </div>
