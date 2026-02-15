@@ -161,7 +161,6 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 <div class="container">
 <div class="users-page-head">
   <h1>Users</h1>
-  <button type="button" class="btn" data-open-new-user-dialog>+ New User</button>
 </div>
 <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
 <?php if ($errorMessage): ?><div class="banner"><?=htmlspecialchars($errorMessage)?></div><?php endif; ?>
@@ -170,6 +169,10 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 $requests = array_values(array_filter($rows, static fn($u) => ($u['status'] ?? '') === 'pending'));
 $members = array_values(array_filter($rows, static fn($u) => ($u['status'] ?? '') !== 'pending'));
 ?>
+
+<div class="models-toolbar">
+  <button type="button" class="form-btn" data-open-new-user-dialog>New User</button>
+</div>
 
 <div class="card users-table-card">
   <h2>User Requests</h2>
