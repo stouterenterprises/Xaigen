@@ -70,7 +70,7 @@ function persist_base64_image(array $job, string $base64): ?array
         return null;
     }
 
-    return ['path' => $filename, 'mime' => 'image/png'];
+    return ['path' => '/storage/generated/' . $filename, 'mime' => 'image/png'];
 }
 
 function extract_preview_url(array $body): ?string

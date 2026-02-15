@@ -60,7 +60,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login</title>
   <link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>">
@@ -68,7 +68,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <body>
   <nav class="site-nav">
     <div class="container nav-inner">
-      <a class="brand" href="/">Xaigen</a>
+      <a class="brand" href="/"><img class="brand-logo" src="/app/assets/img/logo-glow.svg" alt="" aria-hidden="true"><span>GetYourPics.com</span></a>
       <button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
       <div id="nav-links" class="nav-links">
         <a href="/">Home</a>
