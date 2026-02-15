@@ -87,7 +87,7 @@ try {
         'part_ids' => $partIds,
         'seed' => $payload['seed'] ?? $model['default_seed'],
         'aspect_ratio' => $payload['aspect_ratio'] ?: ($model['default_aspect_ratio'] ?: '16:9'),
-        'resolution' => $payload['resolution'] ?: ($model['default_resolution'] ?: '1024x1024'),
+        'resolution' => $payload['resolution'] ?: ($model['default_resolution'] ?: '1k'),
         'duration_seconds' => $payload['duration_seconds'] ?: (float) ($model['default_duration_seconds'] ?: 5),
         'fps' => $payload['fps'] ?: (int) ($model['default_fps'] ?: 24),
     ];

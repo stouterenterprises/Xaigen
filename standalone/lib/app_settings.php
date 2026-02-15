@@ -9,7 +9,7 @@ function get_generation_defaults(): array
     $defaults = [
         'seed' => '',
         'aspect_ratio' => '16:9',
-        'resolution' => '1024x1024',
+        'resolution' => '1k',
         'duration_seconds' => '5',
         'fps' => '24',
     ];
@@ -38,7 +38,7 @@ function save_generation_defaults(array $input): void
     $payload = [
         'seed' => trim((string) ($input['seed'] ?? '')),
         'aspect_ratio' => trim((string) ($input['aspect_ratio'] ?? '16:9')),
-        'resolution' => trim((string) ($input['resolution'] ?? '1024x1024')),
+        'resolution' => trim((string) ($input['resolution'] ?? '1k')),
         'duration_seconds' => trim((string) ($input['duration_seconds'] ?? '5')),
         'fps' => trim((string) ($input['fps'] ?? '24')),
     ];
