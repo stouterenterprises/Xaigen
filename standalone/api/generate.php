@@ -71,8 +71,13 @@ try {
     if ($generationMode === 'extend' && $payload['type'] !== 'video') {
         throw new InvalidArgumentException('Extend mode currently supports video generations only.');
     }
-    if ($generationMode === 'extend' && trim((string) ($payload['extend_video'] ?? '')) === '' && trim((string) ($payload['input_video'] ?? '')) === '') {
-        throw new InvalidArgumentException('Provide a video URL to extend.');
+    if (
+        $generationMode === 'extend'
+        && trim((string) ($payload['extend_video'] ?? '')) === ''
+        && trim((string) ($payload['input_video'] ?? '')) === ''
+        && trim((string) ($payload['input_image'] ?? '')) === ''
+    ) {
+        throw new InvalidArgumentException('Upload a reference photo or video for extend mode.');
     }
 
     if ($partIds) {

@@ -80,10 +80,33 @@ async function submitGeneration(e){
   if(!('extend_to_provider_max' in payload)){
     payload.extend_to_provider_max = 0;
   }
-  if((payload.type || 'image') === 'video' && !payload.input_image && payload.video_input_image){
-    payload.input_image = payload.video_input_image;
+
+  const toDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+    reader.onerror = () => reject(new Error('Unable to read selected file.'));
+    reader.readAsDataURL(file);
+  });
+
+  const referenceFile = formData.get('reference_media');
+  const extendFile = formData.get('extend_media');
+
+  if(referenceFile instanceof File && referenceFile.size > 0){
+    payload.input_image = await toDataUrl(referenceFile);
   }
-  delete payload.video_input_image;
+
+  if(extendFile instanceof File && extendFile.size > 0){
+    const extendDataUrl = await toDataUrl(extendFile);
+    if(extendFile.type.startsWith('video/')){
+      payload.input_video = extendDataUrl;
+    } else {
+      payload.input_image = extendDataUrl;
+    }
+  }
+
+  delete payload.reference_media;
+  delete payload.extend_media;
+  delete payload.extend_video;
   payload.duration_seconds = parseFloat(payload.duration_seconds || '5');
   payload.fps = parseInt(payload.fps || '24', 10);
 
@@ -204,8 +227,7 @@ function bindMobileNav(){
 }
 
 function setupGeneratorTabs(form){
-  const modeTabs = Array.from(form.querySelectorAll('[data-mode-tab]'));
-  const tabs = Array.from(form.querySelectorAll('[data-type-tab]'));
+  const tabs = Array.from(form.querySelectorAll('[data-generator-tab]'));
   const modeInput = form.querySelector('input[name="generation_mode"]');
   const typeInput = form.querySelector('input[name="type"]');
   const modelSelect = form.querySelector('select[name="model_key"]');
@@ -251,7 +273,7 @@ function setupGeneratorTabs(form){
 
     typeInput.value = nextType;
     tabs.forEach((tab) => {
-      const active = tab.getAttribute('data-type-tab') === nextType;
+      const active = tab.getAttribute('data-generator-tab') === nextType;
       tab.classList.toggle('is-active', active);
       tab.setAttribute('aria-selected', String(active));
     });
@@ -265,28 +287,15 @@ function setupGeneratorTabs(form){
     document.querySelectorAll('.row-video-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'video'));
   };
 
-  const setMode = (nextMode) => {
-    modeInput.value = nextMode;
-    modeTabs.forEach((tab) => {
-      const active = tab.getAttribute('data-mode-tab') === nextMode;
-      tab.classList.toggle('is-active', active);
-      tab.setAttribute('aria-selected', String(active));
-    });
+  const setGeneratorTab = (nextTab) => {
+    const isExtend = nextTab === 'extend';
+    modeInput.value = isExtend ? 'extend' : 'create';
+    const tabType = nextTab === 'extend' ? 'video' : nextTab;
+    setType(tabType);
 
-    const isExtend = nextMode === 'extend';
     document.querySelectorAll('.row-extend-only').forEach((row)=>row.classList.toggle('is-hidden', !isExtend));
+    document.querySelectorAll('.row-standard-media').forEach((row)=>row.classList.toggle('is-hidden', isExtend));
 
-    tabs.forEach((tab)=>{
-      const tabType = tab.getAttribute('data-type-tab') || 'image';
-      if(isExtend && tabType === 'image'){
-        tab.classList.add('is-hidden');
-      }else{
-        tab.classList.remove('is-hidden');
-      }
-    });
-    if(isExtend){
-      setType('video');
-    }
     document.querySelectorAll('#characterSelect, #sceneSelect, #partSelect').forEach((input)=>{
       const row = input.closest('.row');
       if(row){
@@ -300,6 +309,11 @@ function setupGeneratorTabs(form){
         }
       }
     });
+
+    const standardFileInput = form.querySelector('input[name="reference_media"]');
+    const extendFileInput = form.querySelector('input[name="extend_media"]');
+    if(standardFileInput && isExtend){ standardFileInput.value = ''; }
+    if(extendFileInput && !isExtend){ extendFileInput.value = ''; }
   };
 
   if(characterSelect){
@@ -313,10 +327,8 @@ function setupGeneratorTabs(form){
     });
   }
 
-  modeTabs.forEach((tab)=>tab.addEventListener('click', ()=>setMode(tab.getAttribute('data-mode-tab') || 'create')));
-  tabs.forEach((tab)=>tab.addEventListener('click', ()=>setType(tab.getAttribute('data-type-tab') || 'image')));
-  setMode(modeInput.value || 'create');
-  setType(typeInput.value || 'image');
+  tabs.forEach((tab)=>tab.addEventListener('click', ()=>setGeneratorTab(tab.getAttribute('data-generator-tab') || 'image')));
+  setGeneratorTab((modeInput.value || 'create') === 'extend' ? 'extend' : (typeInput.value || 'image'));
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
