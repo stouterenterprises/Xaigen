@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/crypto.php';
 require_admin();
 
 function shared_provider_value(string $provider, string $keyName): string
