@@ -146,6 +146,7 @@ Negative prompt behavior:
 - Models page now uses a **New Model** button that opens an add-model dialog.
 - Generator now includes contextual selectors for up to 3 characters, one scene, and multiple parts; selected entity names are appended as creative context in the generation prompt and persisted in `params_json`.
 - App nav now consolidates character/scene/part links into a single **Customize** entry (`/app/customize.php`) that links out to Characters, Parts, and Scenes.
+- Customize library pages (`/app/characters.php`, `/app/parts.php`, `/app/scenes.php`) now use a shared page header style (`Page Name` + `Characters | Parts | Scenes`) and open creation forms in mobile-friendly dialogs triggered by `+ New` buttons.
 - Admin sessions can browse `/app/characters.php`, `/app/scenes.php`, and `/app/parts.php` without being forced back through `/app/login.php`; create actions on those pages still require a signed-in active user account.
 - New creator pages:
   - `/app/characters.php` supports private/shared characters with metadata (age 20+, gender, penis size, boob size, height) and up to 20 reference photos.
