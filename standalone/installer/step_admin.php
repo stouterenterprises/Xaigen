@@ -18,6 +18,8 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
     $defaults = [
       ['xai','XAI_API_KEY',''],
       ['xai','XAI_BASE_URL',''],
+      ['openrouter','OPENROUTER_API_KEY',''],
+      ['openrouter','OPENROUTER_BASE_URL',''],
     ];
     foreach($defaults as $d){
       db()->prepare('INSERT INTO api_keys (id,provider,key_name,key_value_encrypted,is_active,notes,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)')

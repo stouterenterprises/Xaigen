@@ -169,8 +169,9 @@ Negative prompt behavior:
 - `/api/download.php` now permits authenticated admin sessions to download private generation outputs while keeping owner/public restrictions for non-admin users.
 - Model records support provider metadata (`api_provider`) while `/admin/model_edit.php` now enforces shared provider URL/API key usage from `/admin/keys.php` for existing models.
 - `lib/xai.php` now resolves provider settings per model and uses model-specific credentials for generation/polling requests, with fallback to provider keys in `/admin/keys.php` when model-level keys are not set.
+- `lib/xai.php` no longer falls back to `XAI_API_KEY` for non-xAI providers, so each model provider uses its own shared API key entry.
 - `lib/xai.php` now resolves provider base URLs from provider-specific keys (`XAI_BASE_URL`, `OPENROUTER_BASE_URL`) with sensible defaults (`https://api.x.ai/v1`, `https://openrouter.ai/api/v1`) so xAI/OpenRouter models can share credentials from `/admin/keys.php` without per-model duplication.
-- `/admin/keys.php` now includes preset helper forms for quickly saving shared xAI/OpenRouter base URLs and OpenRouter API keys used by provider-backed model pages.
+- `/admin/keys.php` now auto-seeds blank shared provider key rows (`XAI_API_KEY`, `XAI_BASE_URL`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`) when missing, and the manual preset helper forms were removed.
 - `/admin/model_edit.php` now shows shared credential status hints only; model-specific base URL and API key controls were removed so individual model pages always fall back to `/admin/keys.php`.
 - Migration `0008_model_provider_credentials_and_seed.sql` adds model API config columns and seeds these active models if missing: `Nous-Hermes 2 – Mixtral 8x7B`, `Dolphin 2.5 – Mixtral`, and `JOSIEFIED-Qwen3:8b`.
 - Admin models UX polish: spacing added between toolbar and model list, add-model dialog now has a top-right close button, click-outside close behavior, and improved responsive dialog sizing for mobile.

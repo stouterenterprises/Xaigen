@@ -84,10 +84,6 @@ function resolve_model_api_settings(array $model): array
         $fallbackKeyName = strtoupper($provider) . '_API_KEY';
         $apiKey = trim((string) (round_robin_pick_api_key($provider, $fallbackKeyName) ?? ''));
     }
-    if ($apiKey === '' && $provider !== 'xai') {
-        $apiKey = trim((string) (round_robin_pick_api_key('xai', 'XAI_API_KEY') ?? ''));
-    }
-
     return [
         'provider' => $provider,
         'base_url' => rtrim($baseUrl, '/'),
