@@ -45,6 +45,32 @@ function provider_default_base_url(string $provider): string
     };
 }
 
+function normalize_provider_base_url(string $provider, string $baseUrl): string
+{
+    $provider = strtolower(trim($provider));
+    $baseUrl = rtrim(trim($baseUrl), '/');
+    if ($baseUrl === '') {
+        return provider_default_base_url($provider);
+    }
+
+    if ($provider !== 'openrouter') {
+        return $baseUrl;
+    }
+
+    $parts = parse_url($baseUrl);
+    if (!is_array($parts)) {
+        return $baseUrl;
+    }
+
+    $host = strtolower((string) ($parts['host'] ?? ''));
+    $path = rtrim((string) ($parts['path'] ?? ''), '/');
+    if ($host === 'openrouter.ai' && ($path === '' || $path === '/')) {
+        return $baseUrl . '/api/v1';
+    }
+
+    return $baseUrl;
+}
+
 function provider_base_url(string $provider): string
 {
     $provider = strtolower(trim($provider));
@@ -57,11 +83,11 @@ function provider_base_url(string $provider): string
     if ($rows) {
         $val = trim(decrypt_secret((string) $rows[0]['key_value_encrypted']));
         if ($val !== '') {
-            return rtrim($val, '/');
+            return normalize_provider_base_url($provider, $val);
         }
     }
 
-    return provider_default_base_url($provider);
+    return normalize_provider_base_url($provider, provider_default_base_url($provider));
 }
 
 function resolve_model_api_settings(array $model): array
@@ -86,7 +112,7 @@ function resolve_model_api_settings(array $model): array
     }
     return [
         'provider' => $provider,
-        'base_url' => rtrim($baseUrl, '/'),
+        'base_url' => normalize_provider_base_url($provider, $baseUrl),
         'api_key' => $apiKey,
     ];
 }
@@ -122,6 +148,9 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
     if ($baseUrl === '') {
         $baseUrl = xai_base_url();
     }
+    $baseUrl = normalize_provider_base_url($provider, $baseUrl);
+
+    $providerLabel = strtoupper($provider === '' ? 'xai' : $provider);
 
     $headers = [
         'Authorization: Bearer ' . $apiKey,
@@ -149,7 +178,7 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
     $response = curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     if ($response === false) {
-        throw new RuntimeException('xAI request failed (' . $method . ' ' . $endpoint . '): ' . curl_error($ch));
+        throw new RuntimeException($providerLabel . ' request failed (' . $method . ' ' . $endpoint . '): ' . curl_error($ch));
     }
     curl_close($ch);
 
@@ -158,7 +187,8 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
 
     if ($code >= 400) {
         throw new RuntimeException(sprintf(
-            'xAI %s %s returned HTTP %d: %s',
+            '%s %s %s returned HTTP %d: %s',
+            $providerLabel,
             strtoupper($method),
             $endpoint,
             $code,
