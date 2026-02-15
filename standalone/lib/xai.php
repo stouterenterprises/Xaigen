@@ -524,39 +524,46 @@ function poll_job(string $externalJobId, array $model = []): array
 {
     $apiSettings = resolve_model_api_settings($model);
     $jobId = rawurlencode($externalJobId);
+    $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
+    $modelType = strtolower(trim((string) ($model['type'] ?? '')));
 
-    try {
-        return xai_request('GET', '/jobs/' . $jobId, [], $apiSettings);
-    } catch (RuntimeException $error) {
-        $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
-        $modelType = strtolower(trim((string) ($model['type'] ?? '')));
-        $message = strtolower($error->getMessage());
-        if ($provider !== 'xai' || !str_contains($message, 'returned http 404')) {
-            throw $error;
-        }
-
-        $fallbackEndpoints = [];
-        if ($modelType === 'video') {
-            $fallbackEndpoints[] = '/videos/generations/' . $jobId;
-        } elseif ($modelType === 'image') {
-            $fallbackEndpoints[] = '/images/generations/' . $jobId;
-        } else {
-            $fallbackEndpoints[] = '/videos/generations/' . $jobId;
-            $fallbackEndpoints[] = '/images/generations/' . $jobId;
-        }
-
-        $lastError = $error;
-        foreach ($fallbackEndpoints as $endpoint) {
-            try {
-                return xai_request('GET', $endpoint, [], $apiSettings);
-            } catch (RuntimeException $fallbackError) {
-                $lastError = $fallbackError;
-                if (!str_contains(strtolower($fallbackError->getMessage()), 'returned http 404')) {
-                    throw $fallbackError;
-                }
-            }
-        }
-
-        throw $lastError;
+    $fallbackEndpoints = [];
+    if ($modelType === 'video') {
+        $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+    } elseif ($modelType === 'image') {
+        $fallbackEndpoints[] = '/images/generations/' . $jobId;
+    } else {
+        $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+        $fallbackEndpoints[] = '/images/generations/' . $jobId;
     }
+
+    if ($provider === 'openrouter') {
+        $primaryEndpoints = $fallbackEndpoints;
+        $primaryEndpoints[] = '/jobs/' . $jobId;
+    } else {
+        $primaryEndpoints = ['/jobs/' . $jobId, ...$fallbackEndpoints];
+    }
+
+    $attempted = [];
+    $lastNotFound = null;
+    foreach ($primaryEndpoints as $endpoint) {
+        if (isset($attempted[$endpoint])) {
+            continue;
+        }
+        $attempted[$endpoint] = true;
+        try {
+            return xai_request('GET', $endpoint, [], $apiSettings);
+        } catch (RuntimeException $error) {
+            if (!str_contains(strtolower($error->getMessage()), 'returned http 404')) {
+                throw $error;
+            }
+            $lastNotFound = $error;
+        }
+    }
+
+    if ($lastNotFound instanceof RuntimeException) {
+        throw $lastNotFound;
+    }
+
+    throw new RuntimeException('Unable to poll provider job status. No valid polling endpoint responded.');
 }
