@@ -64,8 +64,13 @@ function normalize_provider_base_url(string $provider, string $baseUrl): string
 
     $host = strtolower((string) ($parts['host'] ?? ''));
     $path = rtrim((string) ($parts['path'] ?? ''), '/');
-    if ($host === 'openrouter.ai') {
+    $isOpenRouterHost = $host === 'openrouter.ai' || str_ends_with($host, '.openrouter.ai');
+    if ($isOpenRouterHost) {
         if ($path === '' || $path === '/' || $path === '/api') {
+            return 'https://openrouter.ai/api/v1';
+        }
+
+        if ($path === '/v1' || str_starts_with($path, '/v1/')) {
             return 'https://openrouter.ai/api/v1';
         }
 
