@@ -151,7 +151,8 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
         'prompt' => $prompt,
         'negative_prompt' => $supportsNegativePrompt ? $negativePrompt : null,
         'seed' => $params['seed'] ?? null,
-        'size' => $params['resolution'] ?? '1024x1024',
+        'resolution' => $params['resolution'] ?? '1024x1024',
+        'aspect_ratio' => $params['aspect_ratio'] ?? '1:1',
     ];
 
     return xai_request('POST', '/images/generations', $payload);
