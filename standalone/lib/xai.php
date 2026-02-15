@@ -121,6 +121,8 @@ function describe_xai_error(array $body): string
 {
     $candidates = [
         $body['error']['message'] ?? null,
+        $body['error'] ?? null,
+        $body['code'] ?? null,
         $body['error_description'] ?? null,
         $body['message'] ?? null,
         $body['detail'] ?? null,
@@ -186,13 +188,24 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
     $body = is_array($json) ? $json : ['raw' => $response];
 
     if ($code >= 400) {
+        $extraHint = '';
+        if (
+            $provider === 'openrouter'
+            && strtoupper($method) === 'POST'
+            && $endpoint === '/videos/generations'
+            && $code === 404
+        ) {
+            $extraHint = ' OpenRouter returned 404 for /videos/generations. Confirm this model supports the OpenRouter video-generation endpoint, or use an xAI provider model for video jobs.';
+        }
+
         throw new RuntimeException(sprintf(
-            '%s %s %s returned HTTP %d: %s',
+            '%s %s %s returned HTTP %d: %s%s',
             $providerLabel,
             strtoupper($method),
             $endpoint,
             $code,
-            describe_xai_error($body)
+            describe_xai_error($body),
+            $extraHint
         ));
     }
 
