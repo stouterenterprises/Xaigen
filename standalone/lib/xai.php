@@ -316,8 +316,10 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
         $params['negative_prompt_fallback'] = true;
     }
 
+    $requestedModelKey = trim((string) ($job['model_key'] ?? ''));
+
     $payload = [
-        'model' => $job['model_key'],
+        'model' => $requestedModelKey,
         'prompt' => $prompt,
         'negative_prompt' => $supportsNegativePrompt ? $negativePrompt : null,
         'duration' => $params['duration_seconds'] ?? 5,
@@ -330,7 +332,150 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
     $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
-    return xai_request('POST', '/videos/generations', $payload, $apiSettings);
+    try {
+        return xai_request('POST', '/videos/generations', $payload, $apiSettings);
+    } catch (RuntimeException $e) {
+        if (!should_retry_video_model_with_fallback($e, $apiSettings, $requestedModelKey)) {
+            throw $e;
+        }
+
+        $fallback = resolve_video_model_fallback($requestedModelKey, $apiSettings);
+        if ($fallback === null) {
+            throw new RuntimeException(
+                $e->getMessage()
+                . ' No accessible xAI video model was discovered from GET /models. '
+                . 'Update the model key in Admin → Models to a video model your team can access.'
+            );
+        }
+
+        $payload['model'] = $fallback;
+
+        try {
+            return xai_request('POST', '/videos/generations', $payload, $apiSettings);
+        } catch (RuntimeException $retryError) {
+            throw new RuntimeException(
+                $retryError->getMessage()
+                . ' Automatic fallback was attempted after model '
+                . $requestedModelKey
+                . ' failed and retried with '
+                . $fallback
+                . '.'
+            );
+        }
+    }
+}
+
+function should_retry_video_model_with_fallback(RuntimeException $error, array $apiSettings, string $requestedModelKey): bool
+{
+    $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
+    if ($provider !== 'xai') {
+        return false;
+    }
+
+    if ($requestedModelKey === '') {
+        return false;
+    }
+
+    $message = strtolower(trim($error->getMessage()));
+    if (!str_contains($message, 'returned http 404')) {
+        return false;
+    }
+
+    return str_contains($message, 'does not exist or your team')
+        || str_contains($message, 'model does not exist')
+        || str_contains($message, 'model_not_found');
+}
+
+function resolve_video_model_fallback(string $requestedModelKey, array $apiSettings): ?string
+{
+    $requestedModelKey = trim($requestedModelKey);
+    if ($requestedModelKey === '') {
+        return null;
+    }
+
+    $candidates = [];
+    foreach (video_model_alias_candidates($requestedModelKey) as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate !== '') {
+            $candidates[] = $candidate;
+        }
+    }
+
+    foreach (list_accessible_video_models($apiSettings) as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate !== '') {
+            $candidates[] = $candidate;
+        }
+    }
+
+    $seen = [];
+    foreach ($candidates as $candidate) {
+        $normalized = strtolower($candidate);
+        if (isset($seen[$normalized])) {
+            continue;
+        }
+        $seen[$normalized] = true;
+        if ($normalized === strtolower($requestedModelKey)) {
+            continue;
+        }
+        return $candidate;
+    }
+
+    return null;
+}
+
+function video_model_alias_candidates(string $requestedModelKey): array
+{
+    $requestedModelKey = strtolower(trim($requestedModelKey));
+    $aliases = [
+        'grok-2-video' => ['grok-video', 'grok-video-latest'],
+        'grok-video' => ['grok-2-video', 'grok-video-latest'],
+        'grok-video-latest' => ['grok-video', 'grok-2-video'],
+    ];
+
+    return $aliases[$requestedModelKey] ?? [];
+}
+
+function list_accessible_video_models(array $apiSettings): array
+{
+    try {
+        $response = xai_request('GET', '/models', [], $apiSettings);
+    } catch (Throwable) {
+        return [];
+    }
+
+    $models = $response['body']['data'] ?? null;
+    if (!is_array($models)) {
+        return [];
+    }
+
+    $videoModels = [];
+    foreach ($models as $entry) {
+        if (!is_array($entry)) {
+            continue;
+        }
+        $modelId = trim((string) ($entry['id'] ?? ''));
+        if ($modelId === '') {
+            continue;
+        }
+
+        $hasVideoModality = false;
+        $modalities = $entry['modalities'] ?? null;
+        if (is_array($modalities)) {
+            foreach ($modalities as $modality) {
+                if (is_string($modality) && strtolower(trim($modality)) === 'video') {
+                    $hasVideoModality = true;
+                    break;
+                }
+            }
+        }
+
+        if ($hasVideoModality || str_contains(strtolower($modelId), 'video')) {
+            $videoModels[] = $modelId;
+        }
+    }
+
+    return $videoModels;
 }
 
 function normalize_xai_video_resolution(string $resolution): string
