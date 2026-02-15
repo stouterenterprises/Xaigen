@@ -316,6 +316,55 @@ function assert_openrouter_media_model_supported(array $apiSettings, array $job,
     );
 }
 
+function openrouter_media_model_requires_chat_bridge(array $apiSettings, array $job): bool
+{
+    $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
+    if ($provider !== 'openrouter') {
+        return false;
+    }
+
+    $modelKey = trim((string) ($job['model_key'] ?? ''));
+    if ($modelKey === '') {
+        return false;
+    }
+
+    return openrouter_model_looks_text_only_for_media($modelKey);
+}
+
+function generate_openrouter_chat_bridge(
+    array $job,
+    array $apiSettings,
+    string $prompt,
+    string $negativePrompt,
+    string $mediaType
+): array {
+    $modelKey = trim((string) ($job['model_key'] ?? ''));
+    $instructions = 'The user attempted a ' . $mediaType . ' generation request using OpenRouter model "' . $modelKey . '". '
+        . 'This model is typically chat/text-first. Rewrite the user input into the best possible prompt for that model and explain that no media file will be produced from chat-only endpoints.';
+
+    if ($negativePrompt !== '') {
+        $instructions .= ' Include the negative prompt constraints when relevant.';
+    }
+
+    $payload = [
+        'model' => $modelKey,
+        'messages' => [
+            ['role' => 'system', 'content' => $instructions],
+            ['role' => 'user', 'content' => "Prompt:\n" . $prompt . ($negativePrompt !== '' ? "\n\nNegative prompt:\n" . $negativePrompt : '')],
+        ],
+        'temperature' => 0.7,
+    ];
+
+    $response = xai_request('POST', '/chat/completions', $payload, $apiSettings);
+    $content = trim((string) ($response['body']['choices'][0]['message']['content'] ?? ''));
+    $response['body']['_chat_bridge'] = true;
+    $response['body']['_chat_bridge_media_type'] = $mediaType;
+    $response['body']['_chat_bridge_content'] = $content;
+    $response['body']['_chat_bridge_message'] = 'Selected OpenRouter model "' . $modelKey . '" appears chat-only, so the generator routed the request to /chat/completions instead of media endpoints.';
+
+    return $response;
+}
+
 function generate_image(array $job, bool $supportsNegativePrompt, array $model): array
 {
     $params = json_decode((string) $job['params_json'], true) ?: [];
@@ -341,6 +390,10 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
     $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
+    if (openrouter_media_model_requires_chat_bridge($apiSettings, $job)) {
+        return generate_openrouter_chat_bridge($job, $apiSettings, $prompt, $negativePrompt, 'image');
+    }
+
     assert_openrouter_media_model_supported($apiSettings, $job, '/images/generations');
     return xai_request('POST', '/images/generations', $payload, $apiSettings);
 }
@@ -405,6 +458,10 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
     $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
+    if (openrouter_media_model_requires_chat_bridge($apiSettings, $job)) {
+        return generate_openrouter_chat_bridge($job, $apiSettings, $prompt, $negativePrompt, 'video');
+    }
+
     assert_openrouter_media_model_supported($apiSettings, $job, '/videos/generations');
     try {
         return xai_request('POST', '/videos/generations', $payload, $apiSettings);
