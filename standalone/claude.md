@@ -161,3 +161,5 @@ Negative prompt behavior:
 - Admin sessions now see generation activity in `/api/history.php` and `/app/gallery.php` even when no normal user session is active, so admin-triggered jobs no longer disappear from the generator history/gallery views.
 - Generator submit feedback in `app/assets/js/app.js` now shows a human-readable "submitted/processing" message instead of dumping raw JSON.
 - Base64 image outputs persisted by `api/tick.php` are now stored with a web path (`/storage/generated/<file>`) so previews render correctly in gallery/history/media views.
+- `/api/toggle_visibility.php` and `/api/delete.php` now allow authenticated admin sessions to manage any gallery item while regular users remain restricted to their own generations.
+- `lib/xai.php` image generation requests now send `resolution`/`aspect_ratio` instead of deprecated `size` to match xAI `/images/generations` API expectations and avoid HTTP 400 `Argument not supported: size` failures.
