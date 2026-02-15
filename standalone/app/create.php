@@ -21,8 +21,9 @@ try {
 if ((bool) cfg('AUTO_MIGRATE', true)) { migrate_if_needed(); }
 
 $models = db()->query("SELECT * FROM models WHERE is_active = 1 ORDER BY type, display_name")->fetchAll();
-$apiRows = db()->query("SELECT COUNT(*) AS c FROM api_keys WHERE provider='xai' AND key_name='XAI_API_KEY' AND is_active=1")->fetch();
-$hasApi = (int)($apiRows['c'] ?? 0) > 0;
+$apiRows = db()->query("SELECT COUNT(*) AS c FROM api_keys WHERE key_name LIKE '%_API_KEY' AND is_active=1")->fetch();
+$modelApiRows = db()->query("SELECT COUNT(*) AS c FROM models WHERE is_active=1 AND api_key_encrypted IS NOT NULL AND api_key_encrypted <> ''")->fetch();
+$hasApi = (int)($apiRows['c'] ?? 0) > 0 || (int)($modelApiRows['c'] ?? 0) > 0;
 $currentUser = current_user();
 $hasActiveAccount = !empty($_SESSION['admin_user_id']) || (($currentUser['status'] ?? '') === 'active');
 $visibilityWhere = !empty($_SESSION['admin_user_id']) ? '1=1' : '(user_id = :user_id OR is_public = 1)';

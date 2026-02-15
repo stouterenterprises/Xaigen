@@ -167,3 +167,7 @@ Negative prompt behavior:
 - `lib/xai.php` now normalizes video resolution inputs to xAI `/videos/generations` enums (`480p` or `720p`), including legacy/shared values like `1024x1024`, `1280x720`, and `1k`, preventing HTTP 422 errors for unsupported variants.
 - `/app/media.php` now mirrors gallery item controls with inline **Download**, **Public/Private**, and **Delete** actions, and private item access now allows admins in addition to the owning user.
 - `/api/download.php` now permits authenticated admin sessions to download private generation outputs while keeping owner/public restrictions for non-admin users.
+- Model records now support per-model API configuration fields (`api_provider`, `api_base_url`, encrypted `api_key_encrypted`) editable in `/admin/models.php` and `/admin/model_edit.php`, allowing model-level key/url overrides instead of relying only on global provider keys.
+- `lib/xai.php` now resolves provider settings per model and uses model-specific credentials for generation/polling requests, with fallback to provider keys in `/admin/keys.php` when model-level keys are not set.
+- Migration `0008_model_provider_credentials_and_seed.sql` adds model API config columns and seeds these active models if missing: `Nous-Hermes 2 – Mixtral 8x7B`, `Dolphin 2.5 – Mixtral`, and `JOSIEFIED-Qwen3:8b`.
+- Admin models UX polish: spacing added between toolbar and model list, add-model dialog now has a top-right close button, click-outside close behavior, and improved responsive dialog sizing for mobile.

@@ -94,4 +94,16 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .model-link-card:hover{border-color:#3b82f6;text-decoration:none}
 .admin-model-form{display:flex;flex-direction:column;gap:8px}
 
+.models-toolbar{margin:10px 0 18px}
+.model-list{display:flex;flex-direction:column;gap:10px}
+.model-dialog{width:min(680px,calc(100% - 24px));border:1px solid var(--border);border-radius:12px;padding:0;background:rgba(15,23,42,.97);color:var(--text)}
+.model-dialog::backdrop{background:rgba(2,6,23,.72)}
+.model-dialog-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.model-dialog-head h3{margin:0}
+.model-dialog .admin-model-form{padding:16px}
+@media (max-width:700px){
+  .model-dialog{width:calc(100% - 12px)}
+  .model-dialog .admin-model-form{padding:12px}
+}
+
 .banner-success{background:#123a1f;border:1px solid #2f8f4e;color:#c9ffd9}
