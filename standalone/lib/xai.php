@@ -53,6 +53,10 @@ function normalize_provider_base_url(string $provider, string $baseUrl): string
         return provider_default_base_url($provider);
     }
 
+    if (!preg_match('#^https?://#i', $baseUrl)) {
+        $baseUrl = 'https://' . ltrim($baseUrl, '/');
+    }
+
     $parts = parse_url($baseUrl);
     if (!is_array($parts)) {
         return $baseUrl;
@@ -75,6 +79,20 @@ function normalize_provider_base_url(string $provider, string $baseUrl): string
         }
 
         return 'https://openrouter.ai/api/v1';
+    }
+
+    if ($host === 'api.x.ai') {
+        if ($path === '' || $path === '/') {
+            return 'https://api.x.ai/v1';
+        }
+
+        if ($path === '/api') {
+            return 'https://api.x.ai/v1';
+        }
+
+        if ($path === '/v1' || str_starts_with($path, '/v1/')) {
+            return 'https://api.x.ai/v1';
+        }
     }
 
     if ($provider !== 'openrouter') {
@@ -205,10 +223,10 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
         if (
             $provider === 'openrouter'
             && strtoupper($method) === 'POST'
-            && $endpoint === '/videos/generations'
+            && ($endpoint === '/videos/generations' || $endpoint === '/images/generations')
             && $code === 404
         ) {
-            $extraHint = ' OpenRouter returned 404 for /videos/generations. Confirm this model supports the OpenRouter video-generation endpoint, or use an xAI provider model for video jobs.';
+            $extraHint = ' OpenRouter returned 404 for ' . $endpoint . '. Confirm OPENROUTER_BASE_URL resolves to https://openrouter.ai/api/v1 and the selected model supports this generation endpoint.';
         }
 
         throw new RuntimeException(sprintf(
@@ -530,11 +548,18 @@ function poll_job(string $externalJobId, array $model = []): array
     $fallbackEndpoints = [];
     if ($modelType === 'video') {
         $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+        $fallbackEndpoints[] = '/video/generations/' . $jobId;
+        $fallbackEndpoints[] = '/generations/' . $jobId;
     } elseif ($modelType === 'image') {
         $fallbackEndpoints[] = '/images/generations/' . $jobId;
+        $fallbackEndpoints[] = '/image/generations/' . $jobId;
+        $fallbackEndpoints[] = '/generations/' . $jobId;
     } else {
         $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+        $fallbackEndpoints[] = '/video/generations/' . $jobId;
         $fallbackEndpoints[] = '/images/generations/' . $jobId;
+        $fallbackEndpoints[] = '/image/generations/' . $jobId;
+        $fallbackEndpoints[] = '/generations/' . $jobId;
     }
 
     if ($provider === 'openrouter') {

@@ -212,6 +212,8 @@ Negative prompt behavior:
 - Mobile generator/status overflow hardening: `#statusBox` and history error text now wrap long provider error payloads so mobile view no longer expands horizontally when responses include raw HTML/errors.
 - `app/assets/js/app.js` history refresh no longer blocks on `/api/tick.php`; tick calls now run with a short client timeout in the background while history loads immediately, so the UI updates faster instead of appearing stuck on "Generating".
 - `lib/xai.php` polling now supports provider-aware endpoint order (OpenRouter polls type-specific generation endpoints first, then `/jobs/{id}`), preventing OpenRouter async jobs from remaining in `running` due to `/jobs` 404-only polling paths.
+- `normalize_provider_base_url()` in `lib/xai.php` now auto-prefixes `https://` for scheme-less API base URLs and canonicalizes `api.x.ai` roots to `https://api.x.ai/v1`, preventing OpenRouter/xAI website-route 404 responses caused by malformed base URL settings.
+- `poll_job()` in `lib/xai.php` now tries additional provider polling route variants (`/video/generations/{id}`, `/image/generations/{id}`, `/generations/{id}`) after existing endpoints, improving compatibility with provider route variations when async generation ids are returned.
 
 - `api/tick.php` now fails OpenRouter jobs early when create responses contain an `id` but no media output and no async-status markers (common when a chat-only model such as Dolphin is pointed at image/video endpoints), preventing indefinite polling loops.
 - `api/tick.php` now escalates repeated polling `HTTP 404` responses to `failed` after 60 seconds of runtime so invalid provider job ids no longer stay stuck in "Generating" until the global timeout.
