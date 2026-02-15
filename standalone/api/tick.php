@@ -305,6 +305,13 @@ function should_fail_running_job_on_poll_error(Throwable $error, int $elapsedSec
         return false;
     }
 
+    // xAI video generations can return transient 404s while the job is still
+    // provisioning across polling endpoints. Keep these jobs running until the
+    // normal generation timeout instead of force-failing after one minute.
+    if (str_starts_with($message, 'xai ')) {
+        return false;
+    }
+
     return $elapsedSeconds >= 60;
 }
 
