@@ -164,7 +164,7 @@ function elapsed_seconds(array $job): ?int
 
 function process_running_job(array $job): array
 {
-    $timeoutSeconds = (int) cfg('GENERATION_TIMEOUT_SECONDS', 3600);
+    $timeoutSeconds = (int) cfg('GENERATION_TIMEOUT_SECONDS', 300);
     if ($timeoutSeconds > 0) {
         $elapsed = elapsed_seconds($job);
         if ($elapsed !== null && $elapsed >= $timeoutSeconds) {
@@ -214,10 +214,53 @@ function process_running_job(array $job): array
 
         return ['ok' => true, 'id' => $job['id'], 'status' => 'running'];
     } catch (Throwable $e) {
+        $elapsed = elapsed_seconds($job) ?? 0;
+        if (should_fail_running_job_on_poll_error($e, $elapsed)) {
+            $message = 'Provider polling returned repeated 404 responses for this generation id. Marking as failed to avoid indefinite "Generating" state. Last error: ' . $e->getMessage();
+            mark_failed($job, $message);
+            return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
+        }
+
         db()->prepare("UPDATE generations SET error_message=? WHERE id=? AND status='running'")
             ->execute([$e->getMessage(), $job['id']]);
         return ['ok' => false, 'id' => $job['id'], 'status' => 'running', 'error' => $e->getMessage()];
     }
+}
+
+function response_has_async_job_markers(array $body): bool
+{
+    $candidates = [
+        $body['status'] ?? null,
+        $body['state'] ?? null,
+        $body['job_id'] ?? null,
+        $body['jobId'] ?? null,
+        $body['external_job_id'] ?? null,
+        $body['externalJobId'] ?? null,
+        $body['job']['id'] ?? null,
+        $body['job']['status'] ?? null,
+        $body['result']['job_id'] ?? null,
+        $body['result']['jobId'] ?? null,
+        $body['result']['status'] ?? null,
+        $body['data'][0]['status'] ?? null,
+    ];
+
+    foreach ($candidates as $candidate) {
+        if (is_string($candidate) && trim($candidate) !== '') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function should_fail_running_job_on_poll_error(Throwable $error, int $elapsedSeconds): bool
+{
+    $message = strtolower($error->getMessage());
+    if (!str_contains($message, 'returned http 404')) {
+        return false;
+    }
+
+    return $elapsedSeconds >= 60;
 }
 
 function process_one_queued_job(): array
@@ -251,6 +294,7 @@ function process_one_queued_job(): array
         $output = extract_output_url($body);
         $base64Output = extract_base64_output($body);
         $preview = extract_preview_url($body);
+        $provider = strtolower(trim((string) ($model['api_provider'] ?? 'xai')));
 
         if ($output === null && $base64Output !== null) {
             $persisted = persist_base64_image($job, $base64Output);
@@ -266,6 +310,17 @@ function process_one_queued_job(): array
 
         if ($external === null && $output === null) {
             $message = 'Provider response did not include output media or a job id to poll. Check model endpoint configuration and provider payload shape.';
+            mark_failed($job, $message);
+            return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
+        }
+
+        if (
+            $output === null
+            && $external !== null
+            && $provider === 'openrouter'
+            && !response_has_async_job_markers($body)
+        ) {
+            $message = 'OpenRouter accepted the request but returned neither media output nor async job status fields. This usually means the selected model does not support image/video generation endpoints.';
             mark_failed($job, $message);
             return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $message];
         }
