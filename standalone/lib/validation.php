@@ -36,7 +36,7 @@ function validate_generation_payload(array $payload): array
         'negative_prompt' => $negative,
         'seed' => isset($payload['seed']) ? (int) $payload['seed'] : null,
         'aspect_ratio' => (string) ($payload['aspect_ratio'] ?? '16:9'),
-        'resolution' => (string) ($payload['resolution'] ?? '1024x1024'),
+        'resolution' => (string) ($payload['resolution'] ?? '1k'),
         'duration_seconds' => isset($payload['duration_seconds']) ? (float) $payload['duration_seconds'] : 5.0,
         'fps' => isset($payload['fps']) ? (int) $payload['fps'] : 24,
         'character_ids' => array_values(array_filter(array_map('strval', (array)($payload['character_ids'] ?? [])))),

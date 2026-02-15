@@ -151,11 +151,34 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
         'prompt' => $prompt,
         'negative_prompt' => $supportsNegativePrompt ? $negativePrompt : null,
         'seed' => $params['seed'] ?? null,
-        'resolution' => $params['resolution'] ?? '1024x1024',
+        'resolution' => normalize_xai_image_resolution((string) ($params['resolution'] ?? '1k')),
         'aspect_ratio' => $params['aspect_ratio'] ?? '1:1',
     ];
 
     return xai_request('POST', '/images/generations', $payload);
+}
+
+function normalize_xai_image_resolution(string $resolution): string
+{
+    $normalized = strtolower(trim($resolution));
+    if ($normalized === '') {
+        return '1k';
+    }
+
+    $map = [
+        '1k' => '1k',
+        '1024' => '1k',
+        '1024x1024' => '1k',
+        '2k' => '2k',
+        '2048' => '2k',
+        '2048x2048' => '2k',
+    ];
+
+    if (isset($map[$normalized])) {
+        return $map[$normalized];
+    }
+
+    return str_contains($normalized, '2048') || str_contains($normalized, '2k') ? '2k' : '1k';
 }
 
 function generate_video(array $job, bool $supportsNegativePrompt, array $model): array
