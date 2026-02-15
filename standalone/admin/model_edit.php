@@ -5,6 +5,23 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/crypto.php';
 require_admin();
 
+function shared_provider_value(string $provider, string $keyName): string
+{
+    $stmt = db()->prepare('SELECT key_value_encrypted FROM api_keys WHERE provider=? AND key_name=? AND is_active=1 ORDER BY created_at ASC LIMIT 1');
+    $stmt->execute([$provider, $keyName]);
+    $row = $stmt->fetch();
+    if (!$row || empty($row['key_value_encrypted'])) {
+        return '';
+    }
+
+    return trim((string) decrypt_secret((string) $row['key_value_encrypted']));
+}
+
+function shared_provider_default_base_url(string $provider): string
+{
+    return $provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : 'https://api.x.ai/v1';
+}
+
 $id = trim((string) ($_GET['id'] ?? $_POST['id'] ?? ''));
 if ($id === '') {
     http_response_code(404);
@@ -19,6 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $apiBaseUrl = trim((string) ($_POST['api_base_url'] ?? ''));
     $apiKeyPlain = trim((string) ($_POST['api_key_plain'] ?? ''));
     $resetApiKey = !empty($_POST['reset_api_key']);
+    $useSharedProviderCredentials = !empty($_POST['use_shared_provider_credentials']);
+
+    if ($useSharedProviderCredentials) {
+        $apiBaseUrl = '';
+        $resetApiKey = true;
+    }
 
     $existingStmt = db()->prepare('SELECT api_key_encrypted FROM models WHERE id=? LIMIT 1');
     $existingStmt->execute([$id]);
@@ -64,6 +87,16 @@ if (!$model) {
 }
 
 $hasModelApiKey = !empty($model['api_key_encrypted']);
+$provider = strtolower(trim((string) ($model['api_provider'] ?? 'xai')));
+if ($provider === '') {
+    $provider = 'xai';
+}
+$sharedBaseUrl = shared_provider_value($provider, strtoupper($provider) . '_BASE_URL');
+if ($sharedBaseUrl === '') {
+    $sharedBaseUrl = shared_provider_default_base_url($provider);
+}
+$sharedApiKeyExists = shared_provider_value($provider, strtoupper($provider) . '_API_KEY') !== '';
+$usingSharedCredentials = (string) ($model['api_base_url'] ?? '') === '' && !$hasModelApiKey;
 $styleVersion = @filemtime(__DIR__ . '/../app/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 ?>
@@ -100,11 +133,14 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
       <div class="row"><label>Type</label><select name="type" required><option value="image" <?=$model['type']==='image'?'selected':''?>>Image</option><option value="video" <?=$model['type']==='video'?'selected':''?>>Video</option></select></div>
       <div class="row"><label>Model key</label><input name="model_key" value="<?=htmlspecialchars((string)$model['model_key'])?>" required></div>
       <div class="row"><label>Display name</label><input name="display_name" value="<?=htmlspecialchars((string)$model['display_name'])?>" required></div>
-      <div class="row"><label>Provider</label><input name="api_provider" value="<?=htmlspecialchars((string)($model['api_provider'] ?? 'xai'))?>" placeholder="xai or openrouter"></div>
+      <div class="row"><label>Provider</label><input name="api_provider" value="<?=htmlspecialchars((string)$provider)?>" placeholder="xai or openrouter"></div>
+      <label><input type="checkbox" name="use_shared_provider_credentials" <?=$usingSharedCredentials ? 'checked' : ''?>> Use shared provider URL + key from <a href="/admin/keys.php">API Keys</a></label>
       <div class="row"><label>Model API base URL</label><input name="api_base_url" value="<?=htmlspecialchars((string)($model['api_base_url'] ?? ''))?>" placeholder="https://api.x.ai/v1"></div>
       <div class="row"><label>Model API key</label><input name="api_key_plain" placeholder="Enter new key to replace existing" autocomplete="off"></div>
       <?php if ($hasModelApiKey): ?><p class="muted">A model-specific API key is saved for this model.</p><?php endif; ?>
       <label><input type="checkbox" name="reset_api_key"> Remove model-specific API key (fallback to provider keys page)</label>
+      <p class="muted">Shared provider base URL: <code><?=htmlspecialchars($sharedBaseUrl)?></code></p>
+      <p class="muted">Shared provider API key: <?=$sharedApiKeyExists ? 'Configured' : 'Not configured yet'?> (key name: <code><?=htmlspecialchars(strtoupper($provider) . '_API_KEY')?></code>)</p>
       <div class="row"><label>Custom prompt (always prepended)</label><textarea name="custom_prompt"><?=htmlspecialchars((string)($model['custom_prompt'] ?? ''))?></textarea></div>
       <div class="row"><label>Custom negative prompt (always appended)</label><textarea name="custom_negative_prompt"><?=htmlspecialchars((string)($model['custom_negative_prompt'] ?? ''))?></textarea></div>
       <div class="row"><label>Default seed</label><input name="default_seed" value="<?=htmlspecialchars((string)($model['default_seed'] ?? ''))?>"></div>

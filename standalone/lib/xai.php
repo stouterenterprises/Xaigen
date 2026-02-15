@@ -33,14 +33,34 @@ function round_robin_pick_api_key(string $provider = 'xai', string $keyName = 'X
 
 function xai_base_url(): string
 {
-    $rows = get_active_api_key_rows('xai', 'XAI_BASE_URL');
+    return provider_base_url('xai');
+}
+
+function provider_default_base_url(string $provider): string
+{
+    return match (strtolower(trim($provider))) {
+        'openrouter' => 'https://openrouter.ai/api/v1',
+        default => 'https://api.x.ai/v1',
+    };
+}
+
+function provider_base_url(string $provider): string
+{
+    $provider = strtolower(trim($provider));
+    if ($provider === '') {
+        $provider = 'xai';
+    }
+
+    $baseUrlKeyName = strtoupper($provider) . '_BASE_URL';
+    $rows = get_active_api_key_rows($provider, $baseUrlKeyName);
     if ($rows) {
         $val = trim(decrypt_secret((string) $rows[0]['key_value_encrypted']));
         if ($val !== '') {
             return rtrim($val, '/');
         }
     }
-    return 'https://api.x.ai/v1';
+
+    return provider_default_base_url($provider);
 }
 
 function resolve_model_api_settings(array $model): array
@@ -52,7 +72,7 @@ function resolve_model_api_settings(array $model): array
 
     $baseUrl = trim((string) ($model['api_base_url'] ?? ''));
     if ($baseUrl === '') {
-        $baseUrl = xai_base_url();
+        $baseUrl = provider_base_url($provider);
     }
 
     $apiKey = trim((string) ($model['api_key_plain'] ?? ''));

@@ -9,6 +9,40 @@ $flash = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
+    if ($action === 'save_preset') {
+        $provider = strtolower(trim((string) ($_POST['provider'] ?? '')));
+        $keyName = strtoupper(trim((string) ($_POST['key_name'] ?? '')));
+        $keyValue = trim((string) ($_POST['key_value'] ?? ''));
+
+        if ($provider !== '' && $keyName !== '' && $keyValue !== '') {
+            $find = db()->prepare('SELECT id FROM api_keys WHERE provider=? AND key_name=? ORDER BY created_at ASC LIMIT 1');
+            $find->execute([$provider, $keyName]);
+            $existing = $find->fetch();
+            $enc = encrypt_secret($keyValue);
+
+            if ($existing && !empty($existing['id'])) {
+                db()->prepare('UPDATE api_keys SET key_value_encrypted=?, is_active=1, updated_at=? WHERE id=?')->execute([
+                    $enc,
+                    now_utc(),
+                    (string) $existing['id'],
+                ]);
+            } else {
+                db()->prepare('INSERT INTO api_keys (id,provider,key_name,key_value_encrypted,is_active,notes,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)')->execute([
+                    uuidv4(),
+                    $provider,
+                    $keyName,
+                    $enc,
+                    1,
+                    'Preset from API Keys helper',
+                    now_utc(),
+                    now_utc(),
+                ]);
+            }
+            header('Location: /admin/keys.php?status=preset_saved');
+            exit;
+        }
+    }
+
     if ($action === 'save') {
         $id = $_POST['id'] ?: uuidv4();
         $exists = db()->prepare('SELECT id FROM api_keys WHERE id=?');
@@ -64,6 +98,8 @@ if ($status === 'saved') {
     $flash = 'API key updated successfully.';
 } elseif ($status === 'deleted') {
     $flash = 'API key removed.';
+} elseif ($status === 'preset_saved') {
+    $flash = 'Provider preset saved successfully.';
 }
 $styleVersion = @filemtime(__DIR__ . '/../app/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
@@ -98,6 +134,32 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
       <h3>API Key Actions</h3>
       <p class="muted">Manage, rotate, and remove API keys from a single place.</p>
       <button type="button" id="open-add-key-dialog">+ Add Key</button>
+    </div>
+
+    <div class="card">
+      <h3>Provider base URL + API key presets</h3>
+      <p class="muted">Use these helpers to quickly save shared provider settings used by model pages.</p>
+      <form method="post" class="api-key-edit-form">
+        <input type="hidden" name="action" value="save_preset">
+        <input type="hidden" name="provider" value="xai">
+        <div class="row"><label>xAI base URL</label><input name="key_value" value="https://api.x.ai/v1" required></div>
+        <input type="hidden" name="key_name" value="XAI_BASE_URL">
+        <button type="submit">Save xAI base URL preset</button>
+      </form>
+      <form method="post" class="api-key-edit-form">
+        <input type="hidden" name="action" value="save_preset">
+        <input type="hidden" name="provider" value="openrouter">
+        <input type="hidden" name="key_name" value="OPENROUTER_BASE_URL">
+        <div class="row"><label>OpenRouter base URL</label><input name="key_value" value="https://openrouter.ai/api/v1" required></div>
+        <button type="submit">Save OpenRouter base URL preset</button>
+      </form>
+      <form method="post" class="api-key-edit-form">
+        <input type="hidden" name="action" value="save_preset">
+        <input type="hidden" name="provider" value="openrouter">
+        <input type="hidden" name="key_name" value="OPENROUTER_API_KEY">
+        <div class="row"><label>OpenRouter API key</label><input name="key_value" placeholder="or-..." required></div>
+        <button type="submit">Save OpenRouter API key preset</button>
+      </form>
     </div>
 
     <dialog id="add-key-dialog">

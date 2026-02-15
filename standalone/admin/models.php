@@ -75,8 +75,8 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
         <div class="row"><label>Model key</label><input name="model_key" required></div>
         <div class="row"><label>Display name</label><input name="display_name" required></div>
         <div class="row"><label>Provider</label><input name="api_provider" value="xai" placeholder="xai or openrouter"></div>
-        <div class="row"><label>Model API base URL (optional)</label><input name="api_base_url" placeholder="https://api.x.ai/v1"></div>
-        <div class="row"><label>Model API key (optional)</label><input name="api_key_plain" placeholder="sk-..." autocomplete="off"></div>
+        <div class="row"><label>Model API base URL (optional override)</label><input name="api_base_url" placeholder="Leave blank to use provider shared base URL from API Keys"></div>
+        <div class="row"><label>Model API key (optional override)</label><input name="api_key_plain" placeholder="Leave blank to use provider shared API key from API Keys" autocomplete="off"></div>
         <div class="row"><label>Custom prompt</label><textarea name="custom_prompt"></textarea></div>
         <div class="row"><label>Custom negative prompt</label><textarea name="custom_negative_prompt"></textarea></div>
         <div class="row"><label>Default seed</label><input name="default_seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
