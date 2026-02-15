@@ -297,6 +297,89 @@ function openrouter_model_looks_text_only_for_media(string $modelKey): bool
     return false;
 }
 
+function openrouter_model_key_candidates(string $modelKey): array
+{
+    $original = trim($modelKey);
+    if ($original === '') {
+        return [];
+    }
+
+    $candidates = [$original];
+    $knownMappings = [
+        'josiefied-qwen3-8b' => 'josiefied/qwen3-8b',
+    ];
+
+    $normalized = strtolower($original);
+    if (isset($knownMappings[$normalized])) {
+        $candidates[] = $knownMappings[$normalized];
+    }
+
+    if (!str_contains($original, '/') && str_contains($original, '-')) {
+        $candidates[] = preg_replace('/-/', '/', $original, 1) ?: $original;
+    }
+
+    $seen = [];
+    $unique = [];
+    foreach ($candidates as $candidate) {
+        $candidate = trim((string) $candidate);
+        if ($candidate === '') {
+            continue;
+        }
+        $key = strtolower($candidate);
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $unique[] = $candidate;
+    }
+
+    return $unique;
+}
+
+function openrouter_is_invalid_model_id_error(Throwable $error): bool
+{
+    $message = strtolower($error->getMessage());
+    return str_contains($message, 'returned http 400')
+        && (str_contains($message, 'not a valid model id') || str_contains($message, 'invalid model'));
+}
+
+function xai_request_with_openrouter_model_fallback(
+    string $method,
+    string $endpoint,
+    array $payload,
+    array $apiSettings,
+    array $modelCandidates
+): array {
+    $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
+    if ($provider !== 'openrouter' || !$modelCandidates) {
+        return xai_request($method, $endpoint, $payload, $apiSettings);
+    }
+
+    $lastError = null;
+    foreach ($modelCandidates as $candidate) {
+        $payload['model'] = $candidate;
+        try {
+            return xai_request($method, $endpoint, $payload, $apiSettings);
+        } catch (RuntimeException $error) {
+            $lastError = $error;
+            if (!openrouter_is_invalid_model_id_error($error)) {
+                throw $error;
+            }
+        }
+    }
+
+    if ($lastError instanceof RuntimeException) {
+        throw new RuntimeException(
+            $lastError->getMessage()
+            . ' Attempted OpenRouter model id fallbacks: '
+            . implode(', ', $modelCandidates)
+            . '.'
+        );
+    }
+
+    return xai_request($method, $endpoint, $payload, $apiSettings);
+}
+
 function assert_openrouter_media_model_supported(array $apiSettings, array $job, string $endpoint): void
 {
     $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
@@ -355,7 +438,13 @@ function generate_openrouter_chat_bridge(
         'temperature' => 0.7,
     ];
 
-    $response = xai_request('POST', '/chat/completions', $payload, $apiSettings);
+    $response = xai_request_with_openrouter_model_fallback(
+        'POST',
+        '/chat/completions',
+        $payload,
+        $apiSettings,
+        openrouter_model_key_candidates($modelKey)
+    );
     $content = trim((string) ($response['body']['choices'][0]['message']['content'] ?? ''));
     $response['body']['_chat_bridge'] = true;
     $response['body']['_chat_bridge_media_type'] = $mediaType;
@@ -395,7 +484,13 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
     }
 
     assert_openrouter_media_model_supported($apiSettings, $job, '/images/generations');
-    return xai_request('POST', '/images/generations', $payload, $apiSettings);
+    return xai_request_with_openrouter_model_fallback(
+        'POST',
+        '/images/generations',
+        $payload,
+        $apiSettings,
+        openrouter_model_key_candidates((string) $payload['model'])
+    );
 }
 
 function max_video_duration_for_provider(string $provider): float
@@ -464,7 +559,13 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
 
     assert_openrouter_media_model_supported($apiSettings, $job, '/videos/generations');
     try {
-        return xai_request('POST', '/videos/generations', $payload, $apiSettings);
+        return xai_request_with_openrouter_model_fallback(
+            'POST',
+            '/videos/generations',
+            $payload,
+            $apiSettings,
+            openrouter_model_key_candidates((string) $payload['model'])
+        );
     } catch (RuntimeException $e) {
         if (!should_retry_video_model_with_fallback($e, $apiSettings, $requestedModelKey)) {
             throw $e;
