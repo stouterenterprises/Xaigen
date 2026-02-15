@@ -53,17 +53,14 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
 <?php if(!$hasActiveAccount): ?><div class="banner">You need an active account to generate. Please login or request access.</div><?php endif; ?>
 <div class="grid"><div class="card"><h3>Create</h3><form id="generateForm">
-<div class="generator-tabs" role="tablist" aria-label="Generation mode"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-mode-tab="create">Create</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-mode-tab="extend">Extend</button></div>
-<div class="generator-tabs" role="tablist" aria-label="Generation type"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-type-tab="image">Image</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-type-tab="video">Video</button></div>
+<div class="generator-tabs" role="tablist" aria-label="Generation type"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-generator-tab="image">Photo</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-generator-tab="video">Video</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-generator-tab="extend">Extend</button></div>
 <input type="hidden" name="generation_mode" value="create">
 <input type="hidden" name="type" value="image">
 <div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars((string)$m['model_key'])?>" data-model-type="<?=htmlspecialchars((string)$m['type'])?>" data-provider="<?=htmlspecialchars((string)($m['api_provider'] ?? 'xai'))?>"><?=htmlspecialchars((string)$m['display_name'])?></option><?php endforeach; ?></select></div>
 <div class="row"><label>Prompt</label><textarea name="prompt" required></textarea></div>
 <div class="row"><label>Negative Prompt</label><textarea name="negative_prompt"></textarea></div>
-<div class="row"><label>Input Photo (Image Generations)</label><input type="url" name="input_image" placeholder="https://..."></div>
-<div class="row row-video-only is-hidden"><label>Input Photo (Video Generations)</label><input type="url" name="video_input_image" placeholder="https://..."></div>
-<div class="row row-video-only is-hidden"><label>Input Video (Video Generations)</label><input type="url" name="input_video" placeholder="https://..."></div>
-<div class="row row-extend-only is-hidden"><label>Video to Extend</label><input type="url" name="extend_video" placeholder="https://..." ></div>
+<div class="row row-standard-media"><label>Reference Photo (Photo + Video)</label><input type="file" name="reference_media" accept="image/*"></div>
+<div class="row row-extend-only is-hidden"><label>Extend Reference (Photo or Video)</label><input type="file" name="extend_media" accept="image/*,video/*"></div>
 <div class="row row-extend-only is-hidden"><label>Extend to provider max duration</label><input type="checkbox" name="extend_to_provider_max" value="1" checked></div>
 <div class="row row-image-only"><label>Seed</label><input name="seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
 <div class="row row-image-only"><label>Aspect ratio</label><input name="aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
