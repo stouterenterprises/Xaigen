@@ -95,7 +95,7 @@ Negative prompt behavior:
 - `api/tick.php` now supports async provider flows: if create returns only a job id, records stay `running` and later ticks poll `/jobs/{id}` until an output URL is available.
 - `api/tick.php` now also captures provider-supplied preview/thumbnail URLs while a job is still `running`, so gallery/history/media pages can show early visual progress before final output is ready.
 - `api/tick.php` now persists polling exceptions into `generations.error_message` even while a job remains `running`, and clears stale errors once polling recovers or the job succeeds so stuck "Generating" items surface actionable diagnostics in gallery/history.
-- `api/tick.php` now enforces a hard running-job timeout via `GENERATION_TIMEOUT_SECONDS` (default `3600` = 60 minutes). If exceeded before a final provider result is received, the generation is marked `failed` with a timeout error so jobs cannot stay in "Generating" forever.
+- `api/tick.php` now enforces a hard running-job timeout via `GENERATION_TIMEOUT_SECONDS` (default `300` = 5 minutes). If exceeded before a final provider result is received, the generation is marked `failed` with a timeout error so jobs cannot stay in "Generating" forever.
 - `api/tick.php` now recognizes additional async job id fields (`jobId`, `external_job_id`, nested `result/job/data` variants) so image/video jobs are not incorrectly failed when providers use non-`id` naming.
 - `api/tick.php` now supports image responses that return `data[0].b64_json` by writing the decoded image into `storage/generated` and marking the generation `succeeded` immediately (no polling job id required).
 - `lib/xai.php` now throws detailed provider errors for HTTP 4xx/5xx responses (includes method, endpoint, status code, and best-available provider message) so failures are diagnosable from gallery/history error text.
@@ -212,3 +212,6 @@ Negative prompt behavior:
 - Mobile generator/status overflow hardening: `#statusBox` and history error text now wrap long provider error payloads so mobile view no longer expands horizontally when responses include raw HTML/errors.
 - `app/assets/js/app.js` history refresh no longer blocks on `/api/tick.php`; tick calls now run with a short client timeout in the background while history loads immediately, so the UI updates faster instead of appearing stuck on "Generating".
 - `lib/xai.php` polling now supports provider-aware endpoint order (OpenRouter polls type-specific generation endpoints first, then `/jobs/{id}`), preventing OpenRouter async jobs from remaining in `running` due to `/jobs` 404-only polling paths.
+
+- `api/tick.php` now fails OpenRouter jobs early when create responses contain an `id` but no media output and no async-status markers (common when a chat-only model such as Dolphin is pointed at image/video endpoints), preventing indefinite polling loops.
+- `api/tick.php` now escalates repeated polling `HTTP 404` responses to `failed` after 60 seconds of runtime so invalid provider job ids no longer stay stuck in "Generating" until the global timeout.

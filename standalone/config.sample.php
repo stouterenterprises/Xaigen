@@ -11,4 +11,5 @@ return [
     'ENCRYPTION_KEY' => 'base64:replace-with-32-byte-random-key',
     'RATE_LIMIT_PER_MINUTE' => 20,
     'XAI_TIMEOUT_SECONDS' => 60,
+    'GENERATION_TIMEOUT_SECONDS' => 300,
 ];
