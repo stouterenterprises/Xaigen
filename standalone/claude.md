@@ -156,3 +156,8 @@ Negative prompt behavior:
 - Session handling now sets secure/HttpOnly/Lax cookies with a 14-day lifetime (`session.gc_maxlifetime` + cookie lifetime), so user/admin sign-ins persist for roughly two weeks unless explicitly logged out.
 - App pages (`/app/create.php`, `/app/gallery.php`, `/app/media.php`, `/app/characters.php`, `/app/scenes.php`, `/app/parts.php`) now guard initial DB load paths with exception handling and render inline error banners instead of failing as blank white pages when migrations/DB queries fail.
 
+
+- Rebrand update: public/admin/app navigation now uses the **GetYourPics.com** name with a shared glowing transparent logo asset at `/app/assets/img/logo-glow.svg`; `/favicon.svg` reuses the same logo.
+- Admin sessions now see generation activity in `/api/history.php` and `/app/gallery.php` even when no normal user session is active, so admin-triggered jobs no longer disappear from the generator history/gallery views.
+- Generator submit feedback in `app/assets/js/app.js` now shows a human-readable "submitted/processing" message instead of dumping raw JSON.
+- Base64 image outputs persisted by `api/tick.php` are now stored with a web path (`/storage/generated/<file>`) so previews render correctly in gallery/history/media views.

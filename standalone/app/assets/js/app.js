@@ -90,7 +90,8 @@ async function submitGeneration(e){
       throw new Error(prettyError(res, parsed, raw));
     }
 
-    statusBox.textContent = JSON.stringify(parsed || { ok: true }, null, 2);
+    const generationId = parsed && parsed.id ? ` ID: ${parsed.id}` : '';
+    statusBox.textContent = `Generation submitted.${generationId} Processing has started and will appear below once preview/output is available.`;
     await loadHistory();
   } catch (err) {
     statusBox.textContent = `Generation request failed: ${err.message}`;
