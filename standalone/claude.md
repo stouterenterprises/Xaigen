@@ -217,3 +217,5 @@ Negative prompt behavior:
 
 - `api/tick.php` now fails OpenRouter jobs early when create responses contain an `id` but no media output and no async-status markers (common when a chat-only model such as Dolphin is pointed at image/video endpoints), preventing indefinite polling loops.
 - `api/tick.php` now escalates repeated polling `HTTP 404` responses to `failed` after 60 seconds of runtime so invalid provider job ids no longer stay stuck in "Generating" until the global timeout.
+- `lib/xai.php` now pre-validates OpenRouter media requests and fails fast when a selected model key looks text/chat-only (for example Dolphin/Venice variants), so `/images/generations` or `/videos/generations` calls return an actionable configuration error instead of opaque provider 404 HTML pages.
+- Migration `0010_disable_text_only_openrouter_media_models.sql` now deactivates legacy OpenRouter text-model seeds (`dolphin/hermes/qwen/llama/mixtral` families) when they were incorrectly saved as image/video generators, preventing broken model selections from appearing in Create.
