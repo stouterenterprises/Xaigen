@@ -339,8 +339,8 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
             throw $e;
         }
 
-        $fallback = resolve_video_model_fallback($requestedModelKey, $apiSettings);
-        if ($fallback === null) {
+        $fallbackCandidates = resolve_video_model_fallback_candidates($requestedModelKey, $apiSettings);
+        if (!$fallbackCandidates) {
             throw new RuntimeException(
                 $e->getMessage()
                 . ' No accessible xAI video model was discovered from GET /models. '
@@ -348,20 +348,29 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
             );
         }
 
-        $payload['model'] = $fallback;
-
-        try {
-            return xai_request('POST', '/videos/generations', $payload, $apiSettings);
-        } catch (RuntimeException $retryError) {
-            throw new RuntimeException(
-                $retryError->getMessage()
-                . ' Automatic fallback was attempted after model '
-                . $requestedModelKey
-                . ' failed and retried with '
-                . $fallback
-                . '.'
-            );
+        $attemptedFallbacks = [];
+        $lastRetryError = $e;
+        foreach ($fallbackCandidates as $fallback) {
+            $payload['model'] = $fallback;
+            $attemptedFallbacks[] = $fallback;
+            try {
+                return xai_request('POST', '/videos/generations', $payload, $apiSettings);
+            } catch (RuntimeException $retryError) {
+                $lastRetryError = $retryError;
+                if (!should_retry_video_model_with_fallback($retryError, $apiSettings, $fallback)) {
+                    throw $retryError;
+                }
+            }
         }
+
+        throw new RuntimeException(
+            $lastRetryError->getMessage()
+            . ' Automatic fallback was attempted after model '
+            . $requestedModelKey
+            . ' failed. Tried: '
+            . implode(', ', $attemptedFallbacks)
+            . '.'
+        );
     }
 }
 
@@ -386,21 +395,14 @@ function should_retry_video_model_with_fallback(RuntimeException $error, array $
         || str_contains($message, 'model_not_found');
 }
 
-function resolve_video_model_fallback(string $requestedModelKey, array $apiSettings): ?string
+function resolve_video_model_fallback_candidates(string $requestedModelKey, array $apiSettings): array
 {
     $requestedModelKey = trim($requestedModelKey);
     if ($requestedModelKey === '') {
-        return null;
+        return [];
     }
 
     $candidates = [];
-    foreach (video_model_alias_candidates($requestedModelKey) as $candidate) {
-        $candidate = trim($candidate);
-        if ($candidate !== '') {
-            $candidates[] = $candidate;
-        }
-    }
-
     foreach (list_accessible_video_models($apiSettings) as $candidate) {
         $candidate = trim($candidate);
         if ($candidate !== '') {
@@ -408,7 +410,15 @@ function resolve_video_model_fallback(string $requestedModelKey, array $apiSetti
         }
     }
 
+    foreach (video_model_alias_candidates($requestedModelKey) as $candidate) {
+        $candidate = trim($candidate);
+        if ($candidate !== '') {
+            $candidates[] = $candidate;
+        }
+    }
+
     $seen = [];
+    $fallbacks = [];
     foreach ($candidates as $candidate) {
         $normalized = strtolower($candidate);
         if (isset($seen[$normalized])) {
@@ -418,10 +428,10 @@ function resolve_video_model_fallback(string $requestedModelKey, array $apiSetti
         if ($normalized === strtolower($requestedModelKey)) {
             continue;
         }
-        return $candidate;
+        $fallbacks[] = $candidate;
     }
 
-    return null;
+    return $fallbacks;
 }
 
 function video_model_alias_candidates(string $requestedModelKey): array
