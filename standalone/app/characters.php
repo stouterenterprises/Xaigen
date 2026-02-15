@@ -108,11 +108,9 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
     </dialog>
   <?php endif; ?>
 
-  <?php if(!$isAdminSession): ?>
-    <div class="models-toolbar">
-      <button class="form-btn" type="button" id="openCreateCharacterDialog">New Character</button>
-    </div>
-  <?php endif; ?>
+  <div class="models-toolbar">
+    <button class="form-btn" type="button" id="openCreateCharacterDialog" <?=$isAdminSession ? 'disabled title="Switch to a user account to create characters."' : ''?>>New Character</button>
+  </div>
 
   <div class="card">
     <h3>Available Characters</h3>

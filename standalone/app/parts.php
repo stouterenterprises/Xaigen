@@ -83,7 +83,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
     </dialog>
   <?php endif; ?>
 
-  <?php if(!$isAdminSession): ?><div class="models-toolbar"><button class="form-btn" type="button" id="openCreatePartDialog">New Part</button></div><?php endif; ?>
+  <div class="models-toolbar"><button class="form-btn" type="button" id="openCreatePartDialog" <?=$isAdminSession ? 'disabled title="Switch to a user account to create parts."' : ''?>>New Part</button></div>
 
   <div class="card"><h3>Available Parts</h3><div class="gallery-list"><?php foreach($items as $item): ?><article class="gallery-item card"><div class="gallery-preview"><?php if(!empty($item['thumbnail_path'])): ?><?php if(($item['thumbnail_type'] ?? 'image') === 'video'): ?><video src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" alt="Part thumbnail"><?php endif; ?><?php endif; ?></div><div class="gallery-content"><strong><?=htmlspecialchars((string)$item['name'])?></strong><small class="muted"><?=!empty($item['is_public']) ? 'Public' : 'Private'?></small><span><?=htmlspecialchars((string)($item['description'] ?? ''))?></span></div></article><?php endforeach; ?></div></div>
 </div>
