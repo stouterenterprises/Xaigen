@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/db.php';
+require_once __DIR__ . '/../lib/crypto.php';
 require_once __DIR__ . '/../lib/app_settings.php';
 require_admin();
 
@@ -9,11 +10,20 @@ $defaults = get_generation_defaults();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = uuidv4();
+    $apiProvider = strtolower(trim((string) ($_POST['api_provider'] ?? 'xai')));
+    if ($apiProvider === '') {
+        $apiProvider = 'xai';
+    }
+    $apiBaseUrl = trim((string) ($_POST['api_base_url'] ?? ''));
+    $apiKeyPlain = trim((string) ($_POST['api_key_plain'] ?? ''));
 
-    db()->prepare('INSERT INTO models (type,model_key,display_name,custom_prompt,custom_negative_prompt,default_seed,default_aspect_ratio,default_resolution,default_duration_seconds,default_fps,supports_negative_prompt,is_active,created_at,updated_at,id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+    db()->prepare('INSERT INTO models (type,model_key,display_name,api_provider,api_base_url,api_key_encrypted,custom_prompt,custom_negative_prompt,default_seed,default_aspect_ratio,default_resolution,default_duration_seconds,default_fps,supports_negative_prompt,is_active,created_at,updated_at,id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
         (string) ($_POST['type'] ?? 'image'),
         trim((string) ($_POST['model_key'] ?? '')),
         trim((string) ($_POST['display_name'] ?? '')),
+        $apiProvider,
+        $apiBaseUrl !== '' ? $apiBaseUrl : null,
+        $apiKeyPlain !== '' ? encrypt_secret($apiKeyPlain) : null,
         trim((string) ($_POST['custom_prompt'] ?? '')),
         trim((string) ($_POST['custom_negative_prompt'] ?? '')),
         ($_POST['default_seed'] ?? '') === '' ? null : (int) $_POST['default_seed'],
@@ -51,14 +61,22 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
     <h1>Models</h1>
     <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
 
-    <button class="form-btn" type="button" id="openAddModel">New Model</button>
+    <div class="models-toolbar">
+      <button class="form-btn" type="button" id="openAddModel">New Model</button>
+    </div>
 
-    <dialog id="addModelDialog">
-      <form method="post" class="admin-model-form">
-        <h3>Add model</h3>
+    <dialog id="addModelDialog" class="model-dialog">
+      <form method="post" class="admin-model-form" id="addModelForm">
+        <div class="model-dialog-head">
+          <h3>Add model</h3>
+          <button class="icon-btn btn-secondary" type="button" id="closeAddModel" aria-label="Close add model dialog">✕</button>
+        </div>
         <div class="row"><label>Type</label><select name="type" required><option value="image">Image</option><option value="video">Video</option></select></div>
         <div class="row"><label>Model key</label><input name="model_key" required></div>
         <div class="row"><label>Display name</label><input name="display_name" required></div>
+        <div class="row"><label>Provider</label><input name="api_provider" value="xai" placeholder="xai or openrouter"></div>
+        <div class="row"><label>Model API base URL (optional)</label><input name="api_base_url" placeholder="https://api.x.ai/v1"></div>
+        <div class="row"><label>Model API key (optional)</label><input name="api_key_plain" placeholder="sk-..." autocomplete="off"></div>
         <div class="row"><label>Custom prompt</label><textarea name="custom_prompt"></textarea></div>
         <div class="row"><label>Custom negative prompt</label><textarea name="custom_negative_prompt"></textarea></div>
         <div class="row"><label>Default seed</label><input name="default_seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
@@ -68,23 +86,34 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
         <div class="row"><label>Default fps</label><input name="default_fps" value="<?=htmlspecialchars((string)$defaults['fps'])?>"></div>
         <label><input type="checkbox" name="supports_negative_prompt" checked> Supports negative prompt</label>
         <label><input type="checkbox" name="is_active" checked> Active</label>
-        <div class="gallery-actions"><button class="btn" type="button" id="closeAddModel">Cancel</button><button class="form-btn" type="submit">Save</button></div>
+        <div class="gallery-actions"><button class="btn" type="button" id="cancelAddModel">Cancel</button><button class="form-btn" type="submit">Save</button></div>
       </form>
     </dialog>
 
+    <div class="model-list">
     <?php foreach ($rows as $r): ?>
       <a class="card model-link-card" href="/admin/model_edit.php?id=<?=urlencode((string)$r['id'])?>">
         <strong><?=htmlspecialchars((string)$r['display_name'])?></strong>
-        <span class="muted"><?=htmlspecialchars((string)$r['model_key'])?> • <?=htmlspecialchars((string)$r['type'])?></span>
+        <span class="muted"><?=htmlspecialchars((string)$r['model_key'])?> • <?=htmlspecialchars((string)$r['type'])?> • <?=htmlspecialchars((string)($r['api_provider'] ?? 'xai'))?></span>
       </a>
     <?php endforeach; ?>
+    </div>
   </div>
 
   <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
   <script>
     const addDialog = document.getElementById('addModelDialog');
-    document.getElementById('openAddModel')?.addEventListener('click', ()=>addDialog?.showModal());
-    document.getElementById('closeAddModel')?.addEventListener('click', ()=>addDialog?.close());
+    const openBtn = document.getElementById('openAddModel');
+    const closeBtn = document.getElementById('closeAddModel');
+    const cancelBtn = document.getElementById('cancelAddModel');
+    openBtn?.addEventListener('click', () => addDialog?.showModal());
+    closeBtn?.addEventListener('click', () => addDialog?.close());
+    cancelBtn?.addEventListener('click', () => addDialog?.close());
+    addDialog?.addEventListener('click', (event) => {
+      if (event.target === addDialog) {
+        addDialog.close();
+      }
+    });
   </script>
 </body>
 </html>

@@ -183,8 +183,12 @@ function process_running_job(array $job): array
         return ['ok' => false, 'error' => $message, 'id' => $job['id'], 'status' => 'failed'];
     }
 
+    $modelStmt = db()->prepare('SELECT * FROM models WHERE model_key=? AND type=? LIMIT 1');
+    $modelStmt->execute([$job['model_key'], $job['type']]);
+    $model = $modelStmt->fetch() ?: [];
+
     try {
-        $response = poll_job((string) $job['external_job_id']);
+        $response = poll_job((string) $job['external_job_id'], $model);
         $body = $response['body'];
         db()->prepare("UPDATE generations SET error_message=NULL WHERE id=? AND status='running'")
             ->execute([$job['id']]);

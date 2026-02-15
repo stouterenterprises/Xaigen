@@ -43,6 +43,37 @@ function xai_base_url(): string
     return 'https://api.x.ai/v1';
 }
 
+function resolve_model_api_settings(array $model): array
+{
+    $provider = strtolower(trim((string) ($model['api_provider'] ?? 'xai')));
+    if ($provider === '') {
+        $provider = 'xai';
+    }
+
+    $baseUrl = trim((string) ($model['api_base_url'] ?? ''));
+    if ($baseUrl === '') {
+        $baseUrl = xai_base_url();
+    }
+
+    $apiKey = trim((string) ($model['api_key_plain'] ?? ''));
+    if ($apiKey === '' && !empty($model['api_key_encrypted'])) {
+        $apiKey = trim((string) decrypt_secret((string) $model['api_key_encrypted']));
+    }
+    if ($apiKey === '') {
+        $fallbackKeyName = strtoupper($provider) . '_API_KEY';
+        $apiKey = trim((string) (round_robin_pick_api_key($provider, $fallbackKeyName) ?? ''));
+    }
+    if ($apiKey === '' && $provider !== 'xai') {
+        $apiKey = trim((string) (round_robin_pick_api_key('xai', 'XAI_API_KEY') ?? ''));
+    }
+
+    return [
+        'provider' => $provider,
+        'base_url' => rtrim($baseUrl, '/'),
+        'api_key' => $apiKey,
+    ];
+}
+
 function describe_xai_error(array $body): string
 {
     $candidates = [
@@ -62,21 +93,33 @@ function describe_xai_error(array $body): string
     return is_string($encoded) && $encoded !== '' ? substr($encoded, 0, 600) : 'No additional details returned by provider.';
 }
 
-function xai_request(string $method, string $endpoint, array $payload): array
+function xai_request(string $method, string $endpoint, array $payload, array $apiSettings): array
 {
-    $apiKey = round_robin_pick_api_key();
+    $apiKey = trim((string) ($apiSettings['api_key'] ?? ''));
     if (!$apiKey) {
-        throw new RuntimeException('No active XAI_API_KEY configured.');
+        throw new RuntimeException('No active API key configured for this model/provider.');
     }
 
-    $ch = curl_init(xai_base_url() . $endpoint);
+    $baseUrl = trim((string) ($apiSettings['base_url'] ?? ''));
+    $provider = (string) ($apiSettings['provider'] ?? 'xai');
+    if ($baseUrl === '') {
+        $baseUrl = xai_base_url();
+    }
+
+    $headers = [
+        'Authorization: Bearer ' . $apiKey,
+        'Content-Type: application/json',
+    ];
+    if ($provider === 'openrouter') {
+        $headers[] = 'HTTP-Referer: ' . (string) cfg('APP_URL', 'http://localhost');
+        $headers[] = 'X-Title: GetYourPics.com';
+    }
+
+    $ch = curl_init(rtrim($baseUrl, '/') . $endpoint);
     $curlOptions = [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_CUSTOMREQUEST => $method,
-        CURLOPT_HTTPHEADER => [
-            'Authorization: Bearer ' . $apiKey,
-            'Content-Type: application/json',
-        ],
+        CURLOPT_HTTPHEADER => $headers,
         CURLOPT_TIMEOUT => (int) cfg('XAI_TIMEOUT_SECONDS', 60),
     ];
 
@@ -155,7 +198,8 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
         'aspect_ratio' => $params['aspect_ratio'] ?? '1:1',
     ];
 
-    return xai_request('POST', '/images/generations', $payload);
+    $apiSettings = resolve_model_api_settings($model);
+    return xai_request('POST', '/images/generations', $payload, $apiSettings);
 }
 
 function normalize_xai_image_resolution(string $resolution): string
@@ -201,7 +245,8 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
         'resolution' => normalize_xai_video_resolution((string) ($params['resolution'] ?? '720p')),
     ];
 
-    return xai_request('POST', '/videos/generations', $payload);
+    $apiSettings = resolve_model_api_settings($model);
+    return xai_request('POST', '/videos/generations', $payload, $apiSettings);
 }
 
 function normalize_xai_video_resolution(string $resolution): string
@@ -229,7 +274,8 @@ function normalize_xai_video_resolution(string $resolution): string
     return str_contains($normalized, '480') ? '480p' : '720p';
 }
 
-function poll_job(string $externalJobId): array
+function poll_job(string $externalJobId, array $model = []): array
 {
-    return xai_request('GET', '/jobs/' . rawurlencode($externalJobId), []);
+    $apiSettings = resolve_model_api_settings($model);
+    return xai_request('GET', '/jobs/' . rawurlencode($externalJobId), [], $apiSettings);
 }
