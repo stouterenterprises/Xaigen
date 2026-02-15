@@ -194,3 +194,8 @@ Negative prompt behavior:
 - `/admin/users.php` heading layout now uses the same top spacing pattern as other admin pages (Settings/Models) for visual consistency.
 
 - `/app/characters.php`, `/app/parts.php`, and `/app/scenes.php` now use the same top header spacing pattern as `/app/customize.php` by rendering a direct page `<h1>` + nav links block (instead of the compact `users-page-head` wrapper).
+- `/app/create.php` is now branded as **Ai Generation Studio** and adds generator-mode tabs (**Create** + **Extend**).
+- Generator inputs now support reference media URLs: image generations accept `input_image`, while video generations accept both `input_image` and `input_video` references.
+- Extend mode on `/app/create.php` is focused on extending existing videos, captures an `extend_video` source URL, and can auto-set duration to provider max when requested.
+- `validate_generation_payload()` and `/api/generate.php` now persist generation-mode/reference-media fields in `params_json`, with extend-mode guardrails and provider max-duration wiring.
+- `lib/xai.php` now forwards optional `image_url`/`video_url` fields to provider generation payloads and exposes `max_video_duration_for_provider()` used by extend mode.

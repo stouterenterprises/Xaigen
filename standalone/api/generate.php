@@ -18,7 +18,7 @@ try {
     $payload = validate_generation_payload(json_input());
     $user = current_user();
 
-    $modelStmt = db()->prepare('SELECT id FROM models WHERE model_key=? AND type=? AND is_active=1 LIMIT 1');
+    $modelStmt = db()->prepare('SELECT id, api_provider FROM models WHERE model_key=? AND type=? AND is_active=1 LIMIT 1');
     $modelStmt->execute([$payload['model_key'], $payload['type']]);
     $model = $modelStmt->fetch();
     $defaults = get_generation_defaults();
@@ -26,9 +26,10 @@ try {
         throw new InvalidArgumentException('The selected model is not active for the requested generation type.');
     }
 
-    $characterIds = array_slice(array_values(array_unique($payload['character_ids'] ?? [])), 0, 3);
-    $partIds = array_values(array_unique($payload['part_ids'] ?? []));
-    $sceneId = $payload['scene_id'] ?? '';
+    $generationMode = $payload['generation_mode'] ?? 'create';
+    $characterIds = $generationMode === 'extend' ? [] : array_slice(array_values(array_unique($payload['character_ids'] ?? [])), 0, 3);
+    $partIds = $generationMode === 'extend' ? [] : array_values(array_unique($payload['part_ids'] ?? []));
+    $sceneId = $generationMode === 'extend' ? '' : ($payload['scene_id'] ?? '');
     $visibilityWhere = !empty($_SESSION['admin_user_id']) ? '1=1' : '(user_id = :user_id OR is_public = 1)';
     $selectionNotes = [];
 
@@ -66,6 +67,14 @@ try {
         $selectionNotes[] = 'Scene: ' . $scene['name'];
     }
 
+
+    if ($generationMode === 'extend' && $payload['type'] !== 'video') {
+        throw new InvalidArgumentException('Extend mode currently supports video generations only.');
+    }
+    if ($generationMode === 'extend' && trim((string) ($payload['extend_video'] ?? '')) === '' && trim((string) ($payload['input_video'] ?? '')) === '') {
+        throw new InvalidArgumentException('Provide a video URL to extend.');
+    }
+
     if ($partIds) {
         $ph = implode(',', array_fill(0, count($partIds), '?'));
         $partSql = "SELECT id, name FROM parts WHERE id IN ($ph) AND {$visibilityWhere}";
@@ -83,6 +92,9 @@ try {
     }
 
     $id = uuidv4();
+    $provider = strtolower(trim((string) ($model['api_provider'] ?? 'xai')));
+    $maxExtendDuration = max_video_duration_for_provider($provider);
+
     $params = [
         'character_ids' => $characterIds,
         'scene_id' => $sceneId ?: null,
@@ -92,7 +104,16 @@ try {
         'resolution' => $payload['resolution'] ?: ($defaults['resolution'] ?: '1k'),
         'duration_seconds' => $payload['duration_seconds'] ?: (float) ($defaults['duration_seconds'] ?: 5),
         'fps' => $payload['fps'] ?: (int) ($defaults['fps'] ?: 24),
+        'generation_mode' => $generationMode,
+        'input_image' => $payload['input_image'] ?: null,
+        'input_video' => ($payload['input_video'] ?: ($payload['extend_video'] ?: null)),
+        'extend_to_provider_max' => !empty($payload['extend_to_provider_max']),
+        'max_duration_seconds' => $maxExtendDuration,
     ];
+
+    if ($generationMode === 'extend' && !empty($params['extend_to_provider_max'])) {
+        $params['duration_seconds'] = $maxExtendDuration;
+    }
 
     $finalPrompt = $payload['prompt'] . (empty($selectionNotes) ? '' : "\n\nCreative context: " . implode(' | ', $selectionNotes));
 
