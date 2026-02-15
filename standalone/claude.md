@@ -178,3 +178,4 @@ Negative prompt behavior:
 
 - Global generation defaults now live exclusively in `/admin/settings.php` (including custom prompt + custom negative prompt, seed, aspect ratio, resolution, duration, and fps) and are applied across all models.
 - `/admin/models.php` and `/admin/model_edit.php` no longer expose per-model prompt/default fields; model pages now focus on model identity, provider credentials, and capability flags.
+- `/admin/users.php` now provides a mobile-friendly management UX with a **New User** dialog (name/email/password), separate **User Requests** and **All Users** tables, inline email/password editing that saves on Enter, and Approve/Reject actions directly in the requests table.
