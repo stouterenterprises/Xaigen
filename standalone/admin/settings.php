@@ -38,6 +38,8 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
     <p><a href="/admin/settings.php">Settings</a> | <a href="/admin/keys.php">API Keys</a> | <a href="/admin/models.php">Models</a> | <a href="/admin/users.php">Users</a> | <a href="/admin/migrations.php">Migrations</a></p>
     <div class="card">
       <form method="post">
+        <div class="row"><label>Custom prompt (always prepended)</label><textarea name="custom_prompt"><?=htmlspecialchars((string)$defaults['custom_prompt'])?></textarea></div>
+        <div class="row"><label>Custom negative prompt (always appended)</label><textarea name="custom_negative_prompt"><?=htmlspecialchars((string)$defaults['custom_negative_prompt'])?></textarea></div>
         <div class="row"><label>Default Seed</label><input name="seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
         <div class="row"><label>Default Aspect Ratio</label><input name="aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
         <div class="row"><label>Default Resolution</label><input name="resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>

@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/crypto.php';
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/app_settings.php';
 
 function get_active_api_key_rows(string $provider, string $keyName): array
 {
@@ -172,37 +173,38 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
     return ['status' => $code, 'body' => $body];
 }
 
-function merge_model_prompt(string $modelPrompt, string $userPrompt): string
+function merge_default_prompt(string $defaultPrompt, string $userPrompt): string
 {
-    $modelPrompt = trim($modelPrompt);
+    $defaultPrompt = trim($defaultPrompt);
     $userPrompt = trim($userPrompt);
-    if ($modelPrompt === '') {
+    if ($defaultPrompt === '') {
         return $userPrompt;
     }
     if ($userPrompt === '') {
-        return $modelPrompt;
+        return $defaultPrompt;
     }
-    return $modelPrompt . "\n\n" . $userPrompt;
+    return $defaultPrompt . "\n\n" . $userPrompt;
 }
 
-function merge_model_negative_prompt(string $modelNegativePrompt, string $userNegativePrompt): string
+function merge_default_negative_prompt(string $defaultNegativePrompt, string $userNegativePrompt): string
 {
-    $modelNegativePrompt = trim($modelNegativePrompt);
+    $defaultNegativePrompt = trim($defaultNegativePrompt);
     $userNegativePrompt = trim($userNegativePrompt);
-    if ($modelNegativePrompt === '') {
+    if ($defaultNegativePrompt === '') {
         return $userNegativePrompt;
     }
     if ($userNegativePrompt === '') {
-        return $modelNegativePrompt;
+        return $defaultNegativePrompt;
     }
-    return $userNegativePrompt . "\n" . $modelNegativePrompt;
+    return $userNegativePrompt . "\n" . $defaultNegativePrompt;
 }
 
 function generate_image(array $job, bool $supportsNegativePrompt, array $model): array
 {
     $params = json_decode((string) $job['params_json'], true) ?: [];
-    $prompt = merge_model_prompt((string) ($model['custom_prompt'] ?? ''), (string) $job['prompt']);
-    $negativePrompt = merge_model_negative_prompt((string) ($model['custom_negative_prompt'] ?? ''), (string) ($job['negative_prompt'] ?? ''));
+    $defaults = get_generation_defaults();
+    $prompt = merge_default_prompt((string) ($defaults['custom_prompt'] ?? ''), (string) $job['prompt']);
+    $negativePrompt = merge_default_negative_prompt((string) ($defaults['custom_negative_prompt'] ?? ''), (string) ($job['negative_prompt'] ?? ''));
 
     if (!$supportsNegativePrompt && $negativePrompt !== '') {
         $prompt .= "\nAvoid: " . $negativePrompt;
@@ -248,8 +250,9 @@ function normalize_xai_image_resolution(string $resolution): string
 function generate_video(array $job, bool $supportsNegativePrompt, array $model): array
 {
     $params = json_decode((string) $job['params_json'], true) ?: [];
-    $prompt = merge_model_prompt((string) ($model['custom_prompt'] ?? ''), (string) $job['prompt']);
-    $negativePrompt = merge_model_negative_prompt((string) ($model['custom_negative_prompt'] ?? ''), (string) ($job['negative_prompt'] ?? ''));
+    $defaults = get_generation_defaults();
+    $prompt = merge_default_prompt((string) ($defaults['custom_prompt'] ?? ''), (string) $job['prompt']);
+    $negativePrompt = merge_default_negative_prompt((string) ($defaults['custom_negative_prompt'] ?? ''), (string) ($job['negative_prompt'] ?? ''));
 
     if (!$supportsNegativePrompt && $negativePrompt !== '') {
         $prompt .= "\nAvoid: " . $negativePrompt;

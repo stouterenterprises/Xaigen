@@ -6,6 +6,7 @@ require_once __DIR__ . '/../lib/validation.php';
 require_once __DIR__ . '/../lib/rate_limit.php';
 require_once __DIR__ . '/../lib/xai.php';
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/app_settings.php';
 
 header('Content-Type: application/json');
 require_installation();
@@ -17,9 +18,10 @@ try {
     $payload = validate_generation_payload(json_input());
     $user = current_user();
 
-    $modelStmt = db()->prepare('SELECT id, default_seed, default_aspect_ratio, default_resolution, default_duration_seconds, default_fps FROM models WHERE model_key=? AND type=? AND is_active=1 LIMIT 1');
+    $modelStmt = db()->prepare('SELECT id FROM models WHERE model_key=? AND type=? AND is_active=1 LIMIT 1');
     $modelStmt->execute([$payload['model_key'], $payload['type']]);
     $model = $modelStmt->fetch();
+    $defaults = get_generation_defaults();
     if (!$model) {
         throw new InvalidArgumentException('The selected model is not active for the requested generation type.');
     }
@@ -85,11 +87,11 @@ try {
         'character_ids' => $characterIds,
         'scene_id' => $sceneId ?: null,
         'part_ids' => $partIds,
-        'seed' => $payload['seed'] ?? $model['default_seed'],
-        'aspect_ratio' => $payload['aspect_ratio'] ?: ($model['default_aspect_ratio'] ?: '16:9'),
-        'resolution' => $payload['resolution'] ?: ($model['default_resolution'] ?: '1k'),
-        'duration_seconds' => $payload['duration_seconds'] ?: (float) ($model['default_duration_seconds'] ?: 5),
-        'fps' => $payload['fps'] ?: (int) ($model['default_fps'] ?: 24),
+        'seed' => $payload['seed'] ?? ($defaults['seed'] === '' ? null : (int) $defaults['seed']),
+        'aspect_ratio' => $payload['aspect_ratio'] ?: ($defaults['aspect_ratio'] ?: '16:9'),
+        'resolution' => $payload['resolution'] ?: ($defaults['resolution'] ?: '1k'),
+        'duration_seconds' => $payload['duration_seconds'] ?: (float) ($defaults['duration_seconds'] ?: 5),
+        'fps' => $payload['fps'] ?: (int) ($defaults['fps'] ?: 24),
     ];
 
     $finalPrompt = $payload['prompt'] . (empty($selectionNotes) ? '' : "\n\nCreative context: " . implode(' | ', $selectionNotes));
