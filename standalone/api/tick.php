@@ -134,6 +134,23 @@ function extract_external_job_id(array $body): ?string
     return null;
 }
 
+function extract_chat_bridge_error(array $body): ?string
+{
+    if (empty($body['_chat_bridge'])) {
+        return null;
+    }
+
+    $message = trim((string) ($body['_chat_bridge_message'] ?? ''));
+    $content = trim((string) ($body['_chat_bridge_content'] ?? ''));
+    if ($content !== '') {
+        $message .= ' Chat response: ' . $content;
+    }
+
+    return $message !== ''
+        ? $message
+        : 'Selected model routed to chat/completions and did not return media output.';
+}
+
 function mark_succeeded(array $job, ?string $external, string $output): void
 {
     $mime = $job['type'] === 'video' ? 'video/mp4' : 'image/png';
@@ -290,6 +307,12 @@ function process_one_queued_job(): array
             : generate_image($job, (bool) $model['supports_negative_prompt'], $model);
 
         $body = $response['body'];
+        $chatBridgeError = extract_chat_bridge_error($body);
+        if ($chatBridgeError !== null) {
+            mark_failed($job, $chatBridgeError);
+            return ['ok' => false, 'id' => $job['id'], 'status' => 'failed', 'error' => $chatBridgeError];
+        }
+
         $external = extract_external_job_id($body);
         $output = extract_output_url($body);
         $base64Output = extract_base64_output($body);
