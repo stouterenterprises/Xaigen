@@ -14,7 +14,6 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   try {
-    if ($isAdminSession) throw new InvalidArgumentException('Switch to a user account to create parts. Admin sessions can browse this page without re-login.');
     $name = trim((string)($_POST['name'] ?? ''));
     $description = trim((string)($_POST['description'] ?? ''));
     if ($name === '') throw new InvalidArgumentException('Name is required.');
@@ -70,8 +69,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
   </div>
   <?php if($error): ?><div class="banner"><?=htmlspecialchars($error)?></div><?php endif; ?><?php if($success): ?><div class="banner banner-success"><?=htmlspecialchars($success)?></div><?php endif; ?>
 
-  <?php if(!$isAdminSession): ?>
-    <dialog id="createPartDialog" class="model-dialog">
+      <dialog id="createPartDialog" class="model-dialog">
       <form method="post" enctype="multipart/form-data" class="admin-model-form">
         <div class="model-dialog-head"><h3>Create Part Variation</h3><button class="icon-btn btn-secondary" type="button" id="closeCreatePartDialog" aria-label="Close part dialog">✕</button></div>
         <div class="row"><label>Name</label><input name="name" required></div>
@@ -81,14 +79,12 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
         <div class="gallery-actions"><button class="btn btn-secondary" type="button" id="cancelCreatePartDialog">Cancel</button><button class="form-btn" type="submit">Save Part</button></div>
       </form>
     </dialog>
-  <?php endif; ?>
 
-  <div class="models-toolbar"><button class="form-btn" type="button" id="openCreatePartDialog" <?=$isAdminSession ? 'disabled title="Switch to a user account to create parts."' : ''?>>New Part</button></div>
+  <div class="models-toolbar"><button class="form-btn" type="button" id="openCreatePartDialog" >New Part</button></div>
 
   <div class="card"><h3>Available Parts</h3><div class="gallery-list"><?php foreach($items as $item): ?><article class="gallery-item card"><div class="gallery-preview"><?php if(!empty($item['thumbnail_path'])): ?><?php if(($item['thumbnail_type'] ?? 'image') === 'video'): ?><video src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" alt="Part thumbnail"><?php endif; ?><?php endif; ?></div><div class="gallery-content"><strong><?=htmlspecialchars((string)$item['name'])?></strong><small class="muted"><?=!empty($item['is_public']) ? 'Public' : 'Private'?></small><span><?=htmlspecialchars((string)($item['description'] ?? ''))?></span></div></article><?php endforeach; ?></div></div>
 </div>
 <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
-<?php if(!$isAdminSession): ?>
 <script>
 (() => {
   const dialog = document.getElementById('createPartDialog');
@@ -104,6 +100,5 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
   });
 })();
 </script>
-<?php endif; ?>
 </body>
 </html>

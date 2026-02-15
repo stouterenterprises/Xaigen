@@ -14,9 +14,6 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   try {
-    if ($isAdminSession) {
-      throw new InvalidArgumentException('Switch to a user account to create characters. Admin sessions can browse this page without re-login.');
-    }
     $name = trim((string)($_POST['name'] ?? ''));
     $description = trim((string)($_POST['description'] ?? ''));
     $age = (int)($_POST['age'] ?? 0);
@@ -87,8 +84,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
   <?php if($error): ?><div class="banner"><?=htmlspecialchars($error)?></div><?php endif; ?>
   <?php if($success): ?><div class="banner banner-success"><?=htmlspecialchars($success)?></div><?php endif; ?>
 
-  <?php if(!$isAdminSession): ?>
-    <dialog id="createCharacterDialog" class="model-dialog">
+      <dialog id="createCharacterDialog" class="model-dialog">
       <form method="post" enctype="multipart/form-data" class="admin-model-form">
         <div class="model-dialog-head">
           <h3>Create Character</h3>
@@ -106,10 +102,9 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
         <div class="gallery-actions"><button class="btn btn-secondary" type="button" id="cancelCreateCharacterDialog">Cancel</button><button class="form-btn" type="submit">Save Character</button></div>
       </form>
     </dialog>
-  <?php endif; ?>
 
   <div class="models-toolbar">
-    <button class="form-btn" type="button" id="openCreateCharacterDialog" <?=$isAdminSession ? 'disabled title="Switch to a user account to create characters."' : ''?>>New Character</button>
+    <button class="form-btn" type="button" id="openCreateCharacterDialog" >New Character</button>
   </div>
 
   <div class="card">
@@ -118,7 +113,6 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
   </div>
 </div>
 <script src="/app/assets/js/app.js?v=<?=urlencode((string)$scriptVersion)?>"></script>
-<?php if(!$isAdminSession): ?>
 <script>
 (() => {
   const dialog = document.getElementById('createCharacterDialog');
@@ -134,6 +128,5 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
   });
 })();
 </script>
-<?php endif; ?>
 </body>
 </html>

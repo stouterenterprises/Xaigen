@@ -6,7 +6,7 @@ require_installation();
 start_session();
 
 if (!empty($_SESSION['admin_user_id'])) {
-    header('Location: /admin/users.php');
+    header('Location: /admin/settings.php');
     exit;
 }
 

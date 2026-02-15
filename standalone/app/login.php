@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         try {
             if (admin_login($identifier, $password)) {
-                header('Location: /admin/users.php');
+                header('Location: /admin/settings.php');
                 exit;
             }
 
