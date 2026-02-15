@@ -306,7 +306,12 @@ function openrouter_model_key_candidates(string $modelKey): array
 
     $candidates = [$original];
     $knownMappings = [
-        'josiefied-qwen3-8b' => 'josiefied/qwen3-8b',
+        'nous-hermes-2-mixtral-8x7b'  => 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
+        'nous/hermes-2-mixtral-8x7b'  => 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
+        'dolphin-2.5-mixtral'         => 'cognitivecomputations/dolphin-mixtral-8x7b',
+        'dolphin/2.5-mixtral'         => 'cognitivecomputations/dolphin-mixtral-8x7b',
+        'josiefied-qwen3-8b'         => 'qwen/qwen3-8b',
+        'josiefied/qwen3-8b'         => 'qwen/qwen3-8b',
     ];
 
     $normalized = strtolower($original);
