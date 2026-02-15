@@ -202,6 +202,7 @@ Negative prompt behavior:
 - Extend mode on `/app/create.php` is focused on extending existing videos, captures an `extend_video` source URL, and can auto-set duration to provider max when requested.
 - `validate_generation_payload()` and `/api/generate.php` now persist generation-mode/reference-media fields in `params_json`, with extend-mode guardrails and provider max-duration wiring.
 - `lib/xai.php` now forwards optional `image_url`/`video_url` fields to provider generation payloads and exposes `max_video_duration_for_provider()` used by extend mode.
+- `lib/xai.php` video generation now auto-retries once on xAI model-access 404 errors by discovering accessible `/models` video ids (plus known Grok video aliases), so stale keys like `grok-2-video` can transparently fall forward when the account exposes a newer alias.
 - `/app/create.php` generator tabs are now ordered as **Photo**, **Video**, **Extend** (no separate Create tab), with Extend positioned to the right of Video.
 - Generator reference inputs were simplified to two upload fields: one shared photo upload for Photo/Video generation, and one Extend-only upload that accepts either photo or video files.
 - `app/assets/js/app.js` now converts uploaded reference media to data URLs before submitting `/api/generate.php`, replacing prior URL-only reference inputs.
