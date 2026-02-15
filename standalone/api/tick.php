@@ -106,28 +106,54 @@ function update_running_preview(array $job, string $previewUrl): void
 
 function extract_external_job_id(array $body): ?string
 {
+    $normalize = static function ($value): ?string {
+        if (is_string($value)) {
+            $trimmed = trim($value);
+            return $trimmed !== '' ? $trimmed : null;
+        }
+
+        if (is_int($value) || is_float($value)) {
+            $serialized = trim((string) $value);
+            return $serialized !== '' ? $serialized : null;
+        }
+
+        return null;
+    };
+
     $candidates = [
         $body['id'] ?? null,
+        $body['generation_id'] ?? null,
+        $body['generationId'] ?? null,
         $body['job_id'] ?? null,
         $body['jobId'] ?? null,
         $body['external_job_id'] ?? null,
         $body['externalJobId'] ?? null,
         $body['request_id'] ?? null,
         $body['requestId'] ?? null,
+        $body['video_generation_id'] ?? null,
+        $body['image_generation_id'] ?? null,
         $body['job']['id'] ?? null,
         $body['job']['job_id'] ?? null,
         $body['job']['jobId'] ?? null,
+        $body['data']['id'] ?? null,
+        $body['data']['job_id'] ?? null,
         $body['data'][0]['id'] ?? null,
         $body['data'][0]['job_id'] ?? null,
         $body['data'][0]['jobId'] ?? null,
         $body['result']['id'] ?? null,
+        $body['result']['generation_id'] ?? null,
         $body['result']['job_id'] ?? null,
         $body['result']['jobId'] ?? null,
+        $body['result']['data']['id'] ?? null,
+        $body['response']['id'] ?? null,
+        $body['response']['job_id'] ?? null,
+        $body['response']['jobId'] ?? null,
     ];
 
     foreach ($candidates as $candidate) {
-        if (is_string($candidate) && trim($candidate) !== '') {
-            return trim($candidate);
+        $normalized = $normalize($candidate);
+        if ($normalized !== null) {
+            return $normalized;
         }
     }
 
@@ -257,12 +283,14 @@ function response_has_async_job_markers(array $body): bool
         $body['job']['status'] ?? null,
         $body['result']['job_id'] ?? null,
         $body['result']['jobId'] ?? null,
+        $body['result']['generation_id'] ?? null,
         $body['result']['status'] ?? null,
         $body['data'][0]['status'] ?? null,
+        $body['data']['status'] ?? null,
     ];
 
     foreach ($candidates as $candidate) {
-        if (is_string($candidate) && trim($candidate) !== '') {
+        if ((is_string($candidate) || is_int($candidate) || is_float($candidate)) && trim((string) $candidate) !== '') {
             return true;
         }
     }
