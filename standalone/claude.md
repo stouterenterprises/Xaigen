@@ -192,3 +192,5 @@ Negative prompt behavior:
 - `lib/auth.php` now auto-links `admin_users` entries into active `users` rows with `role='admin'` during admin login, and admin-role user logins now initialize admin session flags so one admin account can use both user and admin capabilities.
 - `/app/characters.php`, `/app/parts.php`, and `/app/scenes.php` no longer block creation actions for admin sessions; admin-role users can create/manage studio entities without switching accounts.
 - `/admin/users.php` heading layout now uses the same top spacing pattern as other admin pages (Settings/Models) for visual consistency.
+
+- `/app/characters.php`, `/app/parts.php`, and `/app/scenes.php` now use the same top header spacing pattern as `/app/customize.php` by rendering a direct page `<h1>` + nav links block (instead of the compact `users-page-head` wrapper).
