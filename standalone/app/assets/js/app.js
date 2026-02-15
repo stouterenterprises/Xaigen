@@ -129,16 +129,20 @@ async function submitGeneration(e){
 }
 
 async function requestTick(){
+  const controller = new AbortController();
+  const timeout = window.setTimeout(()=>controller.abort(), 4500);
   try {
-    await fetch('/api/tick.php');
+    await fetch('/api/tick.php', { signal: controller.signal, cache: 'no-store' });
   } catch (_err) {
     // Non-fatal: history still renders latest known state.
+  } finally {
+    window.clearTimeout(timeout);
   }
 }
 
 async function loadHistory(){
-  await requestTick();
-  const res = await fetch('/api/history.php');
+  requestTick();
+  const res = await fetch('/api/history.php', { cache: 'no-store' });
   const data = await res.json();
   const box = document.getElementById('historyBox');
   if (!box) return;

@@ -66,6 +66,7 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .gallery-main-link,.history-main-link{display:flex;flex-direction:column;gap:4px;color:var(--text);text-decoration:none}
 .gallery-main-link:hover,.history-main-link:hover{text-decoration:none;color:#bfdbfe}
 .gallery-main-link span,.history-main-link span{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;color:var(--text)}
+.history-main-link small{overflow-wrap:anywhere;word-break:break-word}
 .gallery-actions,.history-actions{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:700px){
   .gallery-item,.history-item{flex-direction:column}
@@ -90,6 +91,7 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .generator-tab{flex:1;background:#0b1220;border:1px solid #334155;color:var(--text)}
 .generator-tab.is-active{background:#1d4ed8;border-color:#2563eb}
 .is-hidden{display:none}
+#statusBox{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;max-width:100%}
 .model-link-card{display:flex;flex-direction:column;gap:4px;text-decoration:none}
 .model-link-card:hover{border-color:#3b82f6;text-decoration:none}
 .admin-model-form{display:flex;flex-direction:column;gap:8px}

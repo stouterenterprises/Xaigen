@@ -209,3 +209,6 @@ Negative prompt behavior:
 - `/api/generate.php` extend validation now accepts either uploaded image or video references (not just video URLs) and returns a targeted error if neither is supplied.
 
 - `lib/xai.php` base-url normalization now canonicalizes any `*.openrouter.ai` host to `https://openrouter.ai/api/v1` even when the model provider is mis-set, and xAI polling now falls back from `/jobs/{id}` to type-specific `/videos/generations/{id}` or `/images/generations/{id}` on 404 so Grok async jobs continue instead of failing on missing job routes.
+- Mobile generator/status overflow hardening: `#statusBox` and history error text now wrap long provider error payloads so mobile view no longer expands horizontally when responses include raw HTML/errors.
+- `app/assets/js/app.js` history refresh no longer blocks on `/api/tick.php`; tick calls now run with a short client timeout in the background while history loads immediately, so the UI updates faster instead of appearing stuck on "Generating".
+- `lib/xai.php` polling now supports provider-aware endpoint order (OpenRouter polls type-specific generation endpoints first, then `/jobs/{id}`), preventing OpenRouter async jobs from remaining in `running` due to `/jobs` 404-only polling paths.
