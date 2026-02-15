@@ -77,6 +77,13 @@ async function submitGeneration(e){
       payload[key] = value;
     }
   });
+  if(!('extend_to_provider_max' in payload)){
+    payload.extend_to_provider_max = 0;
+  }
+  if((payload.type || 'image') === 'video' && !payload.input_image && payload.video_input_image){
+    payload.input_image = payload.video_input_image;
+  }
+  delete payload.video_input_image;
   payload.duration_seconds = parseFloat(payload.duration_seconds || '5');
   payload.fps = parseInt(payload.fps || '24', 10);
 
@@ -197,14 +204,16 @@ function bindMobileNav(){
 }
 
 function setupGeneratorTabs(form){
+  const modeTabs = Array.from(form.querySelectorAll('[data-mode-tab]'));
   const tabs = Array.from(form.querySelectorAll('[data-type-tab]'));
+  const modeInput = form.querySelector('input[name="generation_mode"]');
   const typeInput = form.querySelector('input[name="type"]');
   const modelSelect = form.querySelector('select[name="model_key"]');
   const promptInput = form.querySelector('textarea[name="prompt"]');
   const negativeInput = form.querySelector('textarea[name="negative_prompt"]');
   const sceneSelect = form.querySelector('#sceneSelect');
   const characterSelect = form.querySelector('#characterSelect');
-  if(!tabs.length || !typeInput || !modelSelect || !promptInput || !negativeInput) return;
+  if(!tabs.length || !typeInput || !modelSelect || !promptInput || !negativeInput || !modeInput) return;
 
   const promptState = { image: { prompt: '', negative: '' }, video: { prompt: '', negative: '' } };
   const allModelOptions = Array.from(modelSelect.options).map((opt)=>opt.cloneNode(true));
@@ -256,6 +265,43 @@ function setupGeneratorTabs(form){
     document.querySelectorAll('.row-video-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'video'));
   };
 
+  const setMode = (nextMode) => {
+    modeInput.value = nextMode;
+    modeTabs.forEach((tab) => {
+      const active = tab.getAttribute('data-mode-tab') === nextMode;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
+
+    const isExtend = nextMode === 'extend';
+    document.querySelectorAll('.row-extend-only').forEach((row)=>row.classList.toggle('is-hidden', !isExtend));
+
+    tabs.forEach((tab)=>{
+      const tabType = tab.getAttribute('data-type-tab') || 'image';
+      if(isExtend && tabType === 'image'){
+        tab.classList.add('is-hidden');
+      }else{
+        tab.classList.remove('is-hidden');
+      }
+    });
+    if(isExtend){
+      setType('video');
+    }
+    document.querySelectorAll('#characterSelect, #sceneSelect, #partSelect').forEach((input)=>{
+      const row = input.closest('.row');
+      if(row){
+        row.classList.toggle('is-hidden', isExtend);
+      }
+      if(isExtend){
+        if(input.tagName === 'SELECT' && input.multiple){
+          Array.from(input.options).forEach((opt)=>{ opt.selected = false; });
+        }else{
+          input.value = '';
+        }
+      }
+    });
+  };
+
   if(characterSelect){
     characterSelect.addEventListener('change', ()=>{
       const max = parseInt(characterSelect.getAttribute('data-max-select') || '3', 10);
@@ -267,7 +313,9 @@ function setupGeneratorTabs(form){
     });
   }
 
+  modeTabs.forEach((tab)=>tab.addEventListener('click', ()=>setMode(tab.getAttribute('data-mode-tab') || 'create')));
   tabs.forEach((tab)=>tab.addEventListener('click', ()=>setType(tab.getAttribute('data-type-tab') || 'image')));
+  setMode(modeInput.value || 'create');
   setType(typeInput.value || 'image');
 }
 

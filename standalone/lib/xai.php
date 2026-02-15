@@ -244,10 +244,22 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
         'seed' => $params['seed'] ?? null,
         'resolution' => normalize_xai_image_resolution((string) ($params['resolution'] ?? '1k')),
         'aspect_ratio' => $params['aspect_ratio'] ?? '1:1',
+        'image_url' => $params['input_image'] ?? null,
     ];
+
+    $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
     return xai_request('POST', '/images/generations', $payload, $apiSettings);
+}
+
+function max_video_duration_for_provider(string $provider): float
+{
+    $provider = strtolower(trim($provider));
+    return match ($provider) {
+        'openrouter' => 10.0,
+        default => 10.0,
+    };
 }
 
 function normalize_xai_image_resolution(string $resolution): string
@@ -292,7 +304,11 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
         'duration' => $params['duration_seconds'] ?? 5,
         'fps' => $params['fps'] ?? 24,
         'resolution' => normalize_xai_video_resolution((string) ($params['resolution'] ?? '720p')),
+        'image_url' => $params['input_image'] ?? null,
+        'video_url' => $params['input_video'] ?? null,
     ];
+
+    $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
     return xai_request('POST', '/videos/generations', $payload, $apiSettings);

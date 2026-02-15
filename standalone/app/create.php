@@ -44,20 +44,27 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
 ?>
 <!doctype html>
 <html>
-<head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Generation Studio</title><link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>"></head>
+<head><meta charset="utf-8"><link rel="icon" type="image/svg+xml" href="/favicon.svg"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Ai Generation Studio</title><link rel="stylesheet" href="/app/assets/css/style.css?v=<?=urlencode((string)$styleVersion)?>"></head>
 <body>
 <nav class="site-nav"><div class="container nav-inner"><a class="brand" href="/"><img class="brand-logo" src="/app/assets/img/logo-glow.svg" alt="" aria-hidden="true"><span>GetYourPics.com</span></a><button class="menu-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button><div id="nav-links" class="nav-links"><a href="/">Home</a><a href="/app/create.php">Generator</a><a href="/app/gallery.php">Gallery</a><a href="/app/customize.php">Customize</a><?php if($currentUser): ?><a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a><?php elseif(!empty($_SESSION['admin_user_id'])): ?><a href="/admin/index.php">Admin</a><a href="/admin/logout.php">Logout (Admin)</a><?php else: ?><a href="/app/login.php">Login</a><?php endif; ?></div></div></nav>
 <div class="container">
-<h1>Image + Video Generation Studio</h1>
+<h1>Ai Generation Studio</h1>
 <?php if($pageError): ?><div class="banner">Unable to load generator data: <?=htmlspecialchars($pageError)?></div><?php endif; ?>
 <?php if(!$hasApi): ?><div class="banner">Admin must configure API keys.</div><?php endif; ?>
 <?php if(!$hasActiveAccount): ?><div class="banner">You need an active account to generate. Please login or request access.</div><?php endif; ?>
 <div class="grid"><div class="card"><h3>Create</h3><form id="generateForm">
+<div class="generator-tabs" role="tablist" aria-label="Generation mode"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-mode-tab="create">Create</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-mode-tab="extend">Extend</button></div>
 <div class="generator-tabs" role="tablist" aria-label="Generation type"><button class="generator-tab is-active" type="button" role="tab" aria-selected="true" data-type-tab="image">Image</button><button class="generator-tab" type="button" role="tab" aria-selected="false" data-type-tab="video">Video</button></div>
+<input type="hidden" name="generation_mode" value="create">
 <input type="hidden" name="type" value="image">
-<div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars((string)$m['model_key'])?>" data-model-type="<?=htmlspecialchars((string)$m['type'])?>"><?=htmlspecialchars((string)$m['display_name'])?></option><?php endforeach; ?></select></div>
+<div class="row"><label>Model</label><select name="model_key"><?php foreach($models as $m): ?><option value="<?=htmlspecialchars((string)$m['model_key'])?>" data-model-type="<?=htmlspecialchars((string)$m['type'])?>" data-provider="<?=htmlspecialchars((string)($m['api_provider'] ?? 'xai'))?>"><?=htmlspecialchars((string)$m['display_name'])?></option><?php endforeach; ?></select></div>
 <div class="row"><label>Prompt</label><textarea name="prompt" required></textarea></div>
 <div class="row"><label>Negative Prompt</label><textarea name="negative_prompt"></textarea></div>
+<div class="row"><label>Input Photo (Image Generations)</label><input type="url" name="input_image" placeholder="https://..."></div>
+<div class="row row-video-only is-hidden"><label>Input Photo (Video Generations)</label><input type="url" name="video_input_image" placeholder="https://..."></div>
+<div class="row row-video-only is-hidden"><label>Input Video (Video Generations)</label><input type="url" name="input_video" placeholder="https://..."></div>
+<div class="row row-extend-only is-hidden"><label>Video to Extend</label><input type="url" name="extend_video" placeholder="https://..." ></div>
+<div class="row row-extend-only is-hidden"><label>Extend to provider max duration</label><input type="checkbox" name="extend_to_provider_max" value="1" checked></div>
 <div class="row row-image-only"><label>Seed</label><input name="seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
 <div class="row row-image-only"><label>Aspect ratio</label><input name="aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
 <div class="row"><label>Resolution</label><input name="resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>

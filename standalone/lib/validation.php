@@ -22,6 +22,11 @@ function validate_generation_payload(array $payload): array
     if (!in_array($type, ['image', 'video'], true)) {
         throw new InvalidArgumentException('Invalid type.');
     }
+
+    $generationMode = strtolower(trim((string) ($payload['generation_mode'] ?? 'create')));
+    if (!in_array($generationMode, ['create', 'extend'], true)) {
+        throw new InvalidArgumentException('Invalid generation_mode.');
+    }
     if ($modelKey === '') {
         throw new InvalidArgumentException('model_key is required.');
     }
@@ -30,6 +35,7 @@ function validate_generation_payload(array $payload): array
     }
 
     return [
+        'generation_mode' => $generationMode,
         'type' => $type,
         'model_key' => $modelKey,
         'prompt' => $prompt,
@@ -42,5 +48,9 @@ function validate_generation_payload(array $payload): array
         'character_ids' => array_values(array_filter(array_map('strval', (array)($payload['character_ids'] ?? [])))),
         'scene_id' => trim((string)($payload['scene_id'] ?? '')),
         'part_ids' => array_values(array_filter(array_map('strval', (array)($payload['part_ids'] ?? [])))),
+        'input_image' => trim((string) ($payload['input_image'] ?? '')),
+        'input_video' => trim((string) ($payload['input_video'] ?? '')),
+        'extend_video' => trim((string) ($payload['extend_video'] ?? '')),
+        'extend_to_provider_max' => !empty($payload['extend_to_provider_max']),
     ];
 }
