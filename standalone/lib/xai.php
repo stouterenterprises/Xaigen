@@ -269,6 +269,53 @@ function merge_default_negative_prompt(string $defaultNegativePrompt, string $us
     return $userNegativePrompt . "\n" . $defaultNegativePrompt;
 }
 
+function openrouter_model_looks_text_only_for_media(string $modelKey): bool
+{
+    $normalized = strtolower(trim($modelKey));
+    if ($normalized === '') {
+        return false;
+    }
+
+    $textOnlyTokens = [
+        'dolphin',
+        'venice',
+        'hermes',
+        'qwen',
+        'llama',
+        'mixtral',
+        'mistral',
+        'gpt',
+        'claude',
+    ];
+
+    foreach ($textOnlyTokens as $token) {
+        if (str_contains($normalized, $token)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function assert_openrouter_media_model_supported(array $apiSettings, array $job, string $endpoint): void
+{
+    $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
+    if ($provider !== 'openrouter') {
+        return;
+    }
+
+    $modelKey = trim((string) ($job['model_key'] ?? ''));
+    if (!openrouter_model_looks_text_only_for_media($modelKey)) {
+        return;
+    }
+
+    throw new RuntimeException(
+        'Selected OpenRouter model "' . $modelKey . '" appears to be text/chat-only and does not support '
+        . $endpoint
+        . '. Dolphin/Venice-style free models can work for chat completion, but image/video generation requires a model that explicitly supports OpenRouter media endpoints.'
+    );
+}
+
 function generate_image(array $job, bool $supportsNegativePrompt, array $model): array
 {
     $params = json_decode((string) $job['params_json'], true) ?: [];
@@ -294,6 +341,7 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
     $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
+    assert_openrouter_media_model_supported($apiSettings, $job, '/images/generations');
     return xai_request('POST', '/images/generations', $payload, $apiSettings);
 }
 
@@ -357,6 +405,7 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
     $payload = array_filter($payload, static fn($value) => $value !== null && $value !== '');
 
     $apiSettings = resolve_model_api_settings($model);
+    assert_openrouter_media_model_supported($apiSettings, $job, '/videos/generations');
     try {
         return xai_request('POST', '/videos/generations', $payload, $apiSettings);
     } catch (RuntimeException $e) {
