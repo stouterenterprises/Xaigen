@@ -198,10 +198,35 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
         'negative_prompt' => $supportsNegativePrompt ? $negativePrompt : null,
         'duration' => $params['duration_seconds'] ?? 5,
         'fps' => $params['fps'] ?? 24,
-        'resolution' => $params['resolution'] ?? '1280x720',
+        'resolution' => normalize_xai_video_resolution((string) ($params['resolution'] ?? '720p')),
     ];
 
     return xai_request('POST', '/videos/generations', $payload);
+}
+
+function normalize_xai_video_resolution(string $resolution): string
+{
+    $normalized = strtolower(trim($resolution));
+    if ($normalized === '') {
+        return '720p';
+    }
+
+    $map = [
+        '480p' => '480p',
+        '854x480' => '480p',
+        '640x480' => '480p',
+        '720p' => '720p',
+        '1280x720' => '720p',
+        '1024x1024' => '720p',
+        '1k' => '720p',
+        '2k' => '720p',
+    ];
+
+    if (isset($map[$normalized])) {
+        return $map[$normalized];
+    }
+
+    return str_contains($normalized, '480') ? '480p' : '720p';
 }
 
 function poll_job(string $externalJobId): array
