@@ -2,7 +2,6 @@
 require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/db.php';
-require_once __DIR__ . '/../lib/crypto.php';
 require_admin();
 
 function shared_provider_value(string $provider, string $keyName): string
@@ -33,34 +32,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($apiProvider === '') {
         $apiProvider = 'xai';
     }
-    $apiBaseUrl = trim((string) ($_POST['api_base_url'] ?? ''));
-    $apiKeyPlain = trim((string) ($_POST['api_key_plain'] ?? ''));
-    $resetApiKey = !empty($_POST['reset_api_key']);
-    $useSharedProviderCredentials = !empty($_POST['use_shared_provider_credentials']);
-
-    if ($useSharedProviderCredentials) {
-        $apiBaseUrl = '';
-        $resetApiKey = true;
-    }
-
-    $existingStmt = db()->prepare('SELECT api_key_encrypted FROM models WHERE id=? LIMIT 1');
-    $existingStmt->execute([$id]);
-    $existing = $existingStmt->fetch() ?: [];
-    $apiKeyEncrypted = $existing['api_key_encrypted'] ?? null;
-
-    if ($resetApiKey) {
-        $apiKeyEncrypted = null;
-    } elseif ($apiKeyPlain !== '') {
-        $apiKeyEncrypted = encrypt_secret($apiKeyPlain);
-    }
 
     db()->prepare('UPDATE models SET type=?, model_key=?, display_name=?, api_provider=?, api_base_url=?, api_key_encrypted=?, supports_negative_prompt=?, is_active=?, updated_at=? WHERE id=?')->execute([
         (string) ($_POST['type'] ?? 'image'),
         trim((string) ($_POST['model_key'] ?? '')),
         trim((string) ($_POST['display_name'] ?? '')),
         $apiProvider,
-        $apiBaseUrl !== '' ? $apiBaseUrl : null,
-        $apiKeyEncrypted,
+        null,
+        null,
         (int) !empty($_POST['supports_negative_prompt']),
         (int) !empty($_POST['is_active']),
         now_utc(),
@@ -79,7 +58,6 @@ if (!$model) {
     exit('Model not found.');
 }
 
-$hasModelApiKey = !empty($model['api_key_encrypted']);
 $provider = strtolower(trim((string) ($model['api_provider'] ?? 'xai')));
 if ($provider === '') {
     $provider = 'xai';
@@ -89,7 +67,6 @@ if ($sharedBaseUrl === '') {
     $sharedBaseUrl = shared_provider_default_base_url($provider);
 }
 $sharedApiKeyExists = shared_provider_value($provider, strtoupper($provider) . '_API_KEY') !== '';
-$usingSharedCredentials = (string) ($model['api_base_url'] ?? '') === '' && !$hasModelApiKey;
 $styleVersion = @filemtime(__DIR__ . '/../app/assets/css/style.css') ?: time();
 $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
 ?>
@@ -127,11 +104,7 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
       <div class="row"><label>Model key</label><input name="model_key" value="<?=htmlspecialchars((string)$model['model_key'])?>" required></div>
       <div class="row"><label>Display name</label><input name="display_name" value="<?=htmlspecialchars((string)$model['display_name'])?>" required></div>
       <div class="row"><label>Provider</label><input name="api_provider" value="<?=htmlspecialchars((string)$provider)?>" placeholder="xai or openrouter"></div>
-      <label><input type="checkbox" name="use_shared_provider_credentials" <?=$usingSharedCredentials ? 'checked' : ''?>> Use shared provider URL + key from <a href="/admin/keys.php">API Keys</a></label>
-      <div class="row"><label>Model API base URL</label><input name="api_base_url" value="<?=htmlspecialchars((string)($model['api_base_url'] ?? ''))?>" placeholder="https://api.x.ai/v1"></div>
-      <div class="row"><label>Model API key</label><input name="api_key_plain" placeholder="Enter new key to replace existing" autocomplete="off"></div>
-      <?php if ($hasModelApiKey): ?><p class="muted">A model-specific API key is saved for this model.</p><?php endif; ?>
-      <label><input type="checkbox" name="reset_api_key"> Remove model-specific API key (fallback to provider keys page)</label>
+      <p class="muted">This model uses shared provider URL + key from <a href="/admin/keys.php">API Keys</a>.</p>
       <p class="muted">Shared provider base URL: <code><?=htmlspecialchars($sharedBaseUrl)?></code></p>
       <p class="muted">Shared provider API key: <?=$sharedApiKeyExists ? 'Configured' : 'Not configured yet'?> (key name: <code><?=htmlspecialchars(strtoupper($provider) . '_API_KEY')?></code>)</p>
       <label><input type="checkbox" name="supports_negative_prompt" <?=!empty($model['supports_negative_prompt'])?'checked':''?>> Supports negative prompt</label>
