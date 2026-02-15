@@ -7,6 +7,8 @@ require_once __DIR__ . '/db.php';
 function get_generation_defaults(): array
 {
     $defaults = [
+        'custom_prompt' => '',
+        'custom_negative_prompt' => '',
         'seed' => '',
         'aspect_ratio' => '16:9',
         'resolution' => '1k',
@@ -36,6 +38,8 @@ function get_generation_defaults(): array
 function save_generation_defaults(array $input): void
 {
     $payload = [
+        'custom_prompt' => trim((string) ($input['custom_prompt'] ?? '')),
+        'custom_negative_prompt' => trim((string) ($input['custom_negative_prompt'] ?? '')),
         'seed' => trim((string) ($input['seed'] ?? '')),
         'aspect_ratio' => trim((string) ($input['aspect_ratio'] ?? '16:9')),
         'resolution' => trim((string) ($input['resolution'] ?? '1k')),

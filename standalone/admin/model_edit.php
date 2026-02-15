@@ -54,20 +54,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $apiKeyEncrypted = encrypt_secret($apiKeyPlain);
     }
 
-    db()->prepare('UPDATE models SET type=?, model_key=?, display_name=?, api_provider=?, api_base_url=?, api_key_encrypted=?, custom_prompt=?, custom_negative_prompt=?, default_seed=?, default_aspect_ratio=?, default_resolution=?, default_duration_seconds=?, default_fps=?, supports_negative_prompt=?, is_active=?, updated_at=? WHERE id=?')->execute([
+    db()->prepare('UPDATE models SET type=?, model_key=?, display_name=?, api_provider=?, api_base_url=?, api_key_encrypted=?, supports_negative_prompt=?, is_active=?, updated_at=? WHERE id=?')->execute([
         (string) ($_POST['type'] ?? 'image'),
         trim((string) ($_POST['model_key'] ?? '')),
         trim((string) ($_POST['display_name'] ?? '')),
         $apiProvider,
         $apiBaseUrl !== '' ? $apiBaseUrl : null,
         $apiKeyEncrypted,
-        trim((string) ($_POST['custom_prompt'] ?? '')),
-        trim((string) ($_POST['custom_negative_prompt'] ?? '')),
-        ($_POST['default_seed'] ?? '') === '' ? null : (int) $_POST['default_seed'],
-        trim((string) ($_POST['default_aspect_ratio'] ?? '')),
-        trim((string) ($_POST['default_resolution'] ?? '')),
-        ($_POST['default_duration_seconds'] ?? '') === '' ? null : (float) $_POST['default_duration_seconds'],
-        ($_POST['default_fps'] ?? '') === '' ? null : (int) $_POST['default_fps'],
         (int) !empty($_POST['supports_negative_prompt']),
         (int) !empty($_POST['is_active']),
         now_utc(),
@@ -141,13 +134,6 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
       <label><input type="checkbox" name="reset_api_key"> Remove model-specific API key (fallback to provider keys page)</label>
       <p class="muted">Shared provider base URL: <code><?=htmlspecialchars($sharedBaseUrl)?></code></p>
       <p class="muted">Shared provider API key: <?=$sharedApiKeyExists ? 'Configured' : 'Not configured yet'?> (key name: <code><?=htmlspecialchars(strtoupper($provider) . '_API_KEY')?></code>)</p>
-      <div class="row"><label>Custom prompt (always prepended)</label><textarea name="custom_prompt"><?=htmlspecialchars((string)($model['custom_prompt'] ?? ''))?></textarea></div>
-      <div class="row"><label>Custom negative prompt (always appended)</label><textarea name="custom_negative_prompt"><?=htmlspecialchars((string)($model['custom_negative_prompt'] ?? ''))?></textarea></div>
-      <div class="row"><label>Default seed</label><input name="default_seed" value="<?=htmlspecialchars((string)($model['default_seed'] ?? ''))?>"></div>
-      <div class="row"><label>Default aspect ratio</label><input name="default_aspect_ratio" value="<?=htmlspecialchars((string)($model['default_aspect_ratio'] ?? ''))?>"></div>
-      <div class="row"><label>Default resolution</label><input name="default_resolution" value="<?=htmlspecialchars((string)($model['default_resolution'] ?? ''))?>"></div>
-      <div class="row"><label>Default duration seconds</label><input name="default_duration_seconds" value="<?=htmlspecialchars((string)($model['default_duration_seconds'] ?? ''))?>"></div>
-      <div class="row"><label>Default fps</label><input name="default_fps" value="<?=htmlspecialchars((string)($model['default_fps'] ?? ''))?>"></div>
       <label><input type="checkbox" name="supports_negative_prompt" <?=!empty($model['supports_negative_prompt'])?'checked':''?>> Supports negative prompt</label>
       <label><input type="checkbox" name="is_active" <?=!empty($model['is_active'])?'checked':''?>> Active</label>
       <button class="form-btn" type="submit">Save changes</button>

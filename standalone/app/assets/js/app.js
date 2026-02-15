@@ -188,21 +188,6 @@ function setupGeneratorTabs(form){
   const promptState = { image: { prompt: '', negative: '' }, video: { prompt: '', negative: '' } };
   const allModelOptions = Array.from(modelSelect.options).map((opt)=>opt.cloneNode(true));
 
-  const applyModelDefaults = () => {
-    const selected = modelSelect.selectedOptions[0];
-    if(!selected) return;
-    const seedInput = form.querySelector('input[name="seed"]');
-    const aspectInput = form.querySelector('input[name="aspect_ratio"]');
-    const resolutionInput = form.querySelector('input[name="resolution"]');
-    const durationInput = form.querySelector('input[name="duration_seconds"]');
-    const fpsInput = form.querySelector('input[name="fps"]');
-    if(seedInput && selected.dataset.defaultSeed) seedInput.value = selected.dataset.defaultSeed;
-    if(aspectInput && selected.dataset.defaultAspectRatio) aspectInput.value = selected.dataset.defaultAspectRatio;
-    if(resolutionInput && selected.dataset.defaultResolution) resolutionInput.value = selected.dataset.defaultResolution;
-    if(durationInput && selected.dataset.defaultDuration) durationInput.value = selected.dataset.defaultDuration;
-    if(fpsInput && selected.dataset.defaultFps) fpsInput.value = selected.dataset.defaultFps;
-  };
-
   const refreshModelVisibility = (type) => {
     const prevValue = modelSelect.value;
     modelSelect.innerHTML = '';
@@ -248,7 +233,6 @@ function setupGeneratorTabs(form){
 
     document.querySelectorAll('.row-image-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'image'));
     document.querySelectorAll('.row-video-only').forEach((row)=>row.classList.toggle('is-hidden', nextType !== 'video'));
-    applyModelDefaults();
   };
 
   if(characterSelect){
@@ -263,7 +247,6 @@ function setupGeneratorTabs(form){
   }
 
   tabs.forEach((tab)=>tab.addEventListener('click', ()=>setType(tab.getAttribute('data-type-tab') || 'image')));
-  modelSelect.addEventListener('change', applyModelDefaults);
   setType(typeInput.value || 'image');
 }
 

@@ -175,3 +175,6 @@ Negative prompt behavior:
 - Migration `0008_model_provider_credentials_and_seed.sql` adds model API config columns and seeds these active models if missing: `Nous-Hermes 2 – Mixtral 8x7B`, `Dolphin 2.5 – Mixtral`, and `JOSIEFIED-Qwen3:8b`.
 - Admin models UX polish: spacing added between toolbar and model list, add-model dialog now has a top-right close button, click-outside close behavior, and improved responsive dialog sizing for mobile.
 - Migration `0009_seed_dual_type_extra_models.sql` seeds missing dual-type entries for the OpenRouter extras so `Nous-Hermes 2 – Mixtral 8x7B`, `Dolphin 2.5 – Mixtral`, and `JOSIEFIED-Qwen3:8b` each exist as both `image` and `video` models.
+
+- Global generation defaults now live exclusively in `/admin/settings.php` (including custom prompt + custom negative prompt, seed, aspect ratio, resolution, duration, and fps) and are applied across all models.
+- `/admin/models.php` and `/admin/model_edit.php` no longer expose per-model prompt/default fields; model pages now focus on model identity, provider credentials, and capability flags.

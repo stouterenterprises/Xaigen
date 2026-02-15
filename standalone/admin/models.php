@@ -3,10 +3,7 @@ require_once __DIR__ . '/../lib/config.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/crypto.php';
-require_once __DIR__ . '/../lib/app_settings.php';
 require_admin();
-
-$defaults = get_generation_defaults();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = uuidv4();
@@ -17,20 +14,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $apiBaseUrl = trim((string) ($_POST['api_base_url'] ?? ''));
     $apiKeyPlain = trim((string) ($_POST['api_key_plain'] ?? ''));
 
-    db()->prepare('INSERT INTO models (type,model_key,display_name,api_provider,api_base_url,api_key_encrypted,custom_prompt,custom_negative_prompt,default_seed,default_aspect_ratio,default_resolution,default_duration_seconds,default_fps,supports_negative_prompt,is_active,created_at,updated_at,id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')->execute([
+    db()->prepare('INSERT INTO models (type,model_key,display_name,api_provider,api_base_url,api_key_encrypted,supports_negative_prompt,is_active,created_at,updated_at,id) VALUES (?,?,?,?,?,?,?,?,?,?,?)')->execute([
         (string) ($_POST['type'] ?? 'image'),
         trim((string) ($_POST['model_key'] ?? '')),
         trim((string) ($_POST['display_name'] ?? '')),
         $apiProvider,
         $apiBaseUrl !== '' ? $apiBaseUrl : null,
         $apiKeyPlain !== '' ? encrypt_secret($apiKeyPlain) : null,
-        trim((string) ($_POST['custom_prompt'] ?? '')),
-        trim((string) ($_POST['custom_negative_prompt'] ?? '')),
-        ($_POST['default_seed'] ?? '') === '' ? null : (int) $_POST['default_seed'],
-        trim((string) ($_POST['default_aspect_ratio'] ?? '')),
-        trim((string) ($_POST['default_resolution'] ?? '')),
-        ($_POST['default_duration_seconds'] ?? '') === '' ? null : (float) $_POST['default_duration_seconds'],
-        ($_POST['default_fps'] ?? '') === '' ? null : (int) $_POST['default_fps'],
         (int) !empty($_POST['supports_negative_prompt']),
         (int) !empty($_POST['is_active']),
         now_utc(),
@@ -77,13 +67,6 @@ $scriptVersion = @filemtime(__DIR__ . '/../app/assets/js/app.js') ?: time();
         <div class="row"><label>Provider</label><input name="api_provider" value="xai" placeholder="xai or openrouter"></div>
         <div class="row"><label>Model API base URL (optional override)</label><input name="api_base_url" placeholder="Leave blank to use provider shared base URL from API Keys"></div>
         <div class="row"><label>Model API key (optional override)</label><input name="api_key_plain" placeholder="Leave blank to use provider shared API key from API Keys" autocomplete="off"></div>
-        <div class="row"><label>Custom prompt</label><textarea name="custom_prompt"></textarea></div>
-        <div class="row"><label>Custom negative prompt</label><textarea name="custom_negative_prompt"></textarea></div>
-        <div class="row"><label>Default seed</label><input name="default_seed" value="<?=htmlspecialchars((string)$defaults['seed'])?>"></div>
-        <div class="row"><label>Default aspect ratio</label><input name="default_aspect_ratio" value="<?=htmlspecialchars((string)$defaults['aspect_ratio'])?>"></div>
-        <div class="row"><label>Default resolution</label><input name="default_resolution" value="<?=htmlspecialchars((string)$defaults['resolution'])?>"></div>
-        <div class="row"><label>Default duration seconds</label><input name="default_duration_seconds" value="<?=htmlspecialchars((string)$defaults['duration_seconds'])?>"></div>
-        <div class="row"><label>Default fps</label><input name="default_fps" value="<?=htmlspecialchars((string)$defaults['fps'])?>"></div>
         <label><input type="checkbox" name="supports_negative_prompt" checked> Supports negative prompt</label>
         <label><input type="checkbox" name="is_active" checked> Active</label>
         <div class="gallery-actions"><button class="btn" type="button" id="cancelAddModel">Cancel</button><button class="form-btn" type="submit">Save</button></div>
