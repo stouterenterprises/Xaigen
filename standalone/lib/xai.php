@@ -53,10 +53,6 @@ function normalize_provider_base_url(string $provider, string $baseUrl): string
         return provider_default_base_url($provider);
     }
 
-    if ($provider !== 'openrouter') {
-        return $baseUrl;
-    }
-
     $parts = parse_url($baseUrl);
     if (!is_array($parts)) {
         return $baseUrl;
@@ -77,6 +73,12 @@ function normalize_provider_base_url(string $provider, string $baseUrl): string
         if (!str_starts_with($path, '/api/v1')) {
             return 'https://openrouter.ai/api/v1';
         }
+
+        return 'https://openrouter.ai/api/v1';
+    }
+
+    if ($provider !== 'openrouter') {
+        return $baseUrl;
     }
 
     return $baseUrl;
@@ -521,5 +523,40 @@ function normalize_xai_video_resolution(string $resolution): string
 function poll_job(string $externalJobId, array $model = []): array
 {
     $apiSettings = resolve_model_api_settings($model);
-    return xai_request('GET', '/jobs/' . rawurlencode($externalJobId), [], $apiSettings);
+    $jobId = rawurlencode($externalJobId);
+
+    try {
+        return xai_request('GET', '/jobs/' . $jobId, [], $apiSettings);
+    } catch (RuntimeException $error) {
+        $provider = strtolower(trim((string) ($apiSettings['provider'] ?? 'xai')));
+        $modelType = strtolower(trim((string) ($model['type'] ?? '')));
+        $message = strtolower($error->getMessage());
+        if ($provider !== 'xai' || !str_contains($message, 'returned http 404')) {
+            throw $error;
+        }
+
+        $fallbackEndpoints = [];
+        if ($modelType === 'video') {
+            $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+        } elseif ($modelType === 'image') {
+            $fallbackEndpoints[] = '/images/generations/' . $jobId;
+        } else {
+            $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+            $fallbackEndpoints[] = '/images/generations/' . $jobId;
+        }
+
+        $lastError = $error;
+        foreach ($fallbackEndpoints as $endpoint) {
+            try {
+                return xai_request('GET', $endpoint, [], $apiSettings);
+            } catch (RuntimeException $fallbackError) {
+                $lastError = $fallbackError;
+                if (!str_contains(strtolower($fallbackError->getMessage()), 'returned http 404')) {
+                    throw $fallbackError;
+                }
+            }
+        }
+
+        throw $lastError;
+    }
 }

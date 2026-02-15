@@ -207,3 +207,5 @@ Negative prompt behavior:
 - Generator reference inputs were simplified to two upload fields: one shared photo upload for Photo/Video generation, and one Extend-only upload that accepts either photo or video files.
 - `app/assets/js/app.js` now converts uploaded reference media to data URLs before submitting `/api/generate.php`, replacing prior URL-only reference inputs.
 - `/api/generate.php` extend validation now accepts either uploaded image or video references (not just video URLs) and returns a targeted error if neither is supplied.
+
+- `lib/xai.php` base-url normalization now canonicalizes any `*.openrouter.ai` host to `https://openrouter.ai/api/v1` even when the model provider is mis-set, and xAI polling now falls back from `/jobs/{id}` to type-specific `/videos/generations/{id}` or `/images/generations/{id}` on 404 so Grok async jobs continue instead of failing on missing job routes.
