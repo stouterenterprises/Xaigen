@@ -186,3 +186,7 @@ Negative prompt behavior:
 - `/app/characters.php`, `/app/parts.php`, and `/app/scenes.php` now always render their Models-style **New ...** toolbar button above the "Available ..." section; admin sessions see the button in a disabled state with a tooltip so the control remains visible while still enforcing user-only creation.
 - `/admin/keys.php` removed the `API Key Actions` helper card text and now uses a Models-style `New Key` primary button above the key list.
 - Mobile nav behavior in `app/assets/js/app.js` now consistently closes/open state across taps, outside-clicks, link navigation, and viewport resizes to prevent flickering/inconsistent visibility of Customize/Admin/Login/Logout links.
+- `/admin/index.php` and admin login success now route to `/admin/settings.php` so Admin nav + sign-in land on the main Settings page by default instead of Users.
+- `lib/auth.php` now auto-links `admin_users` entries into active `users` rows with `role='admin'` during admin login, and admin-role user logins now initialize admin session flags so one admin account can use both user and admin capabilities.
+- `/app/characters.php`, `/app/parts.php`, and `/app/scenes.php` no longer block creation actions for admin sessions; admin-role users can create/manage studio entities without switching accounts.
+- `/admin/users.php` heading layout now uses the same top spacing pattern as other admin pages (Settings/Models) for visual consistency.

@@ -38,7 +38,60 @@ function admin_login(string $username, string $password): bool
 
     $_SESSION['admin_user_id'] = $user['id'];
     $_SESSION['admin_username'] = $user['username'];
+
+    $appUser = ensure_admin_user_account($user);
+    $_SESSION['app_user_id'] = $appUser['id'];
+    $_SESSION['app_username'] = $appUser['username'];
+    $_SESSION['app_role'] = $appUser['role'] ?? 'admin';
     return true;
+}
+
+/**
+ * @param array<string,mixed> $adminUser
+ * @return array<string,mixed>
+ */
+function ensure_admin_user_account(array $adminUser): array
+{
+    $username = trim((string) ($adminUser['username'] ?? 'admin'));
+    $email = strtolower($username . '@admin.local');
+    $fullName = trim((string) ($adminUser['username'] ?? 'Admin'));
+
+    $stmt = db()->prepare('SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1');
+    $stmt->execute([$username, $email]);
+    $existing = $stmt->fetch();
+
+    if ($existing) {
+        db()->prepare('UPDATE users SET full_name=?, role=?, status=?, password_hash=?, updated_at=? WHERE id=?')->execute([
+            $fullName !== '' ? $fullName : ($existing['full_name'] ?? 'Admin'),
+            'admin',
+            'active',
+            $adminUser['password_hash'],
+            now_utc(),
+            $existing['id'],
+        ]);
+
+        $refresh = db()->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+        $refresh->execute([$existing['id']]);
+        return $refresh->fetch() ?: $existing;
+    }
+
+    $id = (string) ($adminUser['id'] ?? uuidv4());
+    db()->prepare('INSERT INTO users (id, full_name, username, email, purpose, password_hash, role, status, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)')->execute([
+        $id,
+        $fullName !== '' ? $fullName : 'Admin',
+        $username,
+        $email,
+        'Admin account (auto-linked)',
+        $adminUser['password_hash'],
+        'admin',
+        'active',
+        now_utc(),
+        now_utc(),
+    ]);
+
+    $created = db()->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
+    $created->execute([$id]);
+    return $created->fetch() ?: ['id' => $id, 'username' => $username, 'role' => 'admin', 'status' => 'active'];
 }
 
 function user_login(string $usernameOrEmail, string $password): array
@@ -63,6 +116,13 @@ function user_login(string $usernameOrEmail, string $password): array
     $_SESSION['app_user_id'] = $user['id'];
     $_SESSION['app_username'] = $user['username'];
     $_SESSION['app_role'] = $user['role'] ?? 'user';
+
+    if (($user['role'] ?? 'user') === 'admin') {
+        $_SESSION['admin_user_id'] = $user['id'];
+        $_SESSION['admin_username'] = $user['username'];
+    } else {
+        unset($_SESSION['admin_user_id'], $_SESSION['admin_username']);
+    }
 
     return ['ok' => true];
 }
@@ -147,6 +207,9 @@ function current_user(): ?array
     $stmt = db()->prepare('SELECT * FROM users WHERE id = ? LIMIT 1');
     $stmt->execute([$id]);
     $user = $stmt->fetch();
+    if ($user) {
+        $user['is_admin'] = (($user['role'] ?? '') === 'admin') || !empty($_SESSION['admin_user_id']);
+    }
     return $user ?: null;
 }
 
@@ -172,5 +235,5 @@ function admin_logout(): void
 function app_logout(): void
 {
     start_session();
-    unset($_SESSION['app_user_id'], $_SESSION['app_username'], $_SESSION['app_role']);
+    unset($_SESSION['app_user_id'], $_SESSION['app_username'], $_SESSION['app_role'], $_SESSION['admin_user_id'], $_SESSION['admin_username']);
 }
