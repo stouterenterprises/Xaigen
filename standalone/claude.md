@@ -182,3 +182,6 @@ Negative prompt behavior:
 - Global generation defaults now live exclusively in `/admin/settings.php` (including custom prompt + custom negative prompt, seed, aspect ratio, resolution, duration, and fps) and are applied across all models.
 - `/admin/models.php` and `/admin/model_edit.php` no longer expose per-model prompt/default fields; model pages now focus on model identity, provider credentials, and capability flags.
 - `/admin/users.php` now provides a mobile-friendly management UX with a **New User** dialog (name/email/password), separate **User Requests** and **All Users** tables, inline email/password editing that saves on Enter, and Approve/Reject actions directly in the requests table.
+- `/admin/users.php`, `/app/characters.php`, `/app/parts.php`, and `/app/scenes.php` now place their **New ...** action buttons in a dedicated toolbar immediately above their corresponding listing sections, using the same primary `form-btn` treatment as Models for consistent desktop/mobile UX.
+- `/admin/keys.php` removed the `API Key Actions` helper card text and now uses a Models-style `New Key` primary button above the key list.
+- Mobile nav behavior in `app/assets/js/app.js` now consistently closes/open state across taps, outside-clicks, link navigation, and viewport resizes to prevent flickering/inconsistent visibility of Customize/Admin/Login/Logout links.

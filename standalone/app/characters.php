@@ -82,9 +82,6 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
       <h1>Characters</h1>
       <p><a href="/app/characters.php">Characters</a> | <a href="/app/parts.php">Parts</a> | <a href="/app/scenes.php">Scenes</a></p>
     </div>
-    <?php if(!$isAdminSession): ?>
-      <button class="btn" type="button" id="openCreateCharacterDialog">+ New Character</button>
-    <?php endif; ?>
   </div>
 
   <?php if($error): ?><div class="banner"><?=htmlspecialchars($error)?></div><?php endif; ?>
@@ -109,6 +106,12 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
         <div class="gallery-actions"><button class="btn btn-secondary" type="button" id="cancelCreateCharacterDialog">Cancel</button><button class="form-btn" type="submit">Save Character</button></div>
       </form>
     </dialog>
+  <?php endif; ?>
+
+  <?php if(!$isAdminSession): ?>
+    <div class="models-toolbar">
+      <button class="form-btn" type="button" id="openCreateCharacterDialog">New Character</button>
+    </div>
   <?php endif; ?>
 
   <div class="card">

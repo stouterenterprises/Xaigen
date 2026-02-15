@@ -169,9 +169,30 @@ function bindMobileNav(){
   const navLinks = document.querySelector('#nav-links');
   if (!menuToggle || !navLinks) return;
 
+  const closeMenu = () => {
+    navLinks.classList.remove('open');
+    menuToggle.setAttribute('aria-expanded', 'false');
+  };
+
   menuToggle.addEventListener('click', ()=>{
     const open = navLinks.classList.toggle('open');
     menuToggle.setAttribute('aria-expanded', String(open));
+  });
+
+  navLinks.querySelectorAll('a').forEach((link) => {
+    link.addEventListener('click', closeMenu);
+  });
+
+  document.addEventListener('click', (event) => {
+    if (!navLinks.classList.contains('open')) return;
+    if (navLinks.contains(event.target) || menuToggle.contains(event.target)) return;
+    closeMenu();
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 700) {
+      closeMenu();
+    }
   });
 }
 

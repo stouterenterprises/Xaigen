@@ -73,6 +73,7 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
       <div id="nav-links" class="nav-links">
         <a href="/">Home</a>
         <a href="/app/create.php">Generator</a>
+        <a href="/app/customize.php">Customize</a>
         <a href="/app/gallery.php">Gallery</a>
         <?php if ($currentUser): ?>
           <a href="/app/logout.php">Logout (<?=htmlspecialchars((string)$currentUser['username'])?>)</a>

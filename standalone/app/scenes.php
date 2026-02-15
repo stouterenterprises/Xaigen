@@ -60,7 +60,6 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
       <h1>Scenes</h1>
       <p><a href="/app/characters.php">Characters</a> | <a href="/app/parts.php">Parts</a> | <a href="/app/scenes.php">Scenes</a></p>
     </div>
-    <?php if(!$isAdminSession): ?><button class="btn" type="button" id="openCreateSceneDialog">+ New Scene</button><?php endif; ?>
   </div>
   <?php if($error): ?><div class="banner"><?=htmlspecialchars($error)?></div><?php endif; ?><?php if($success): ?><div class="banner banner-success"><?=htmlspecialchars($success)?></div><?php endif; ?>
 
@@ -77,6 +76,8 @@ $scriptVersion = @filemtime(__DIR__ . '/assets/js/app.js') ?: time();
       </form>
     </dialog>
   <?php endif; ?>
+
+  <?php if(!$isAdminSession): ?><div class="models-toolbar"><button class="form-btn" type="button" id="openCreateSceneDialog">New Scene</button></div><?php endif; ?>
 
   <div class="card"><h3>Available Scenes</h3><div class="gallery-list"><?php foreach($items as $item): ?><article class="gallery-item card"><div class="gallery-preview"><?php if(!empty($item['thumbnail_path'])): ?><?php if(($item['type'] ?? 'image') === 'video'): ?><video src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" muted playsinline preload="metadata"></video><?php else: ?><img src="<?=htmlspecialchars((string)$item['thumbnail_path'])?>" alt="Scene thumbnail"><?php endif; ?><?php endif; ?></div><div class="gallery-content"><strong><?=htmlspecialchars((string)$item['name'])?></strong><small class="muted"><?=htmlspecialchars((string)$item['type'])?> • <?=!empty($item['is_public']) ? 'Public' : 'Private'?></small><span><?=htmlspecialchars((string)($item['description'] ?? ''))?></span></div></article><?php endforeach; ?></div></div>
 </div>

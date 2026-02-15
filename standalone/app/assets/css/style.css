@@ -124,6 +124,6 @@ button:hover,.btn:hover{background:var(--primary-hover);text-decoration:none}
 .status-rejected{background:rgba(220,38,38,.18);border:1px solid rgba(239,68,68,.45);color:#fca5a5}
 
 @media (max-width:700px){
-  .users-page-head .btn{width:100%}
+  .users-page-head .btn,.users-page-head .form-btn,.models-toolbar .form-btn{width:100%}
   .users-table{min-width:640px}
 }
