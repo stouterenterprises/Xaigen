@@ -164,3 +164,6 @@ Negative prompt behavior:
 - `/api/toggle_visibility.php` and `/api/delete.php` now allow authenticated admin sessions to manage any gallery item while regular users remain restricted to their own generations.
 - `lib/xai.php` image generation requests now send `resolution`/`aspect_ratio` instead of deprecated `size` to match xAI `/images/generations` API expectations and avoid HTTP 400 `Argument not supported: size` failures.
 - `lib/xai.php` now normalizes legacy image resolution inputs (`1024x1024`, `2048x2048`, etc.) to xAI-supported enums (`1k` or `2k`) before calling `/images/generations`, preventing HTTP 422 resolution deserialization errors.
+- `/app/media.php` now mirrors gallery item controls with inline **Download**, **Public/Private**, and **Delete** actions, and private item access now allows admins in addition to the owning user.
+- `/api/download.php` now permits authenticated admin sessions to download private generation outputs while keeping owner/public restrictions for non-admin users.
+
