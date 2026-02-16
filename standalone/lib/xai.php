@@ -308,8 +308,10 @@ function openrouter_model_key_candidates(string $modelKey): array
     $knownMappings = [
         'nous-hermes-2-mixtral-8x7b'  => 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
         'nous/hermes-2-mixtral-8x7b'  => 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
-        'dolphin-2.5-mixtral'         => 'cognitivecomputations/dolphin-mixtral-8x7b',
-        'dolphin/2.5-mixtral'         => 'cognitivecomputations/dolphin-mixtral-8x7b',
+        'dolphin-2.5-mixtral'         => 'cognitivecomputations/dolphin3.0-mistral-24b',
+        'dolphin/2.5-mixtral'         => 'cognitivecomputations/dolphin3.0-mistral-24b',
+        // dolphin-mixtral-8x7b has been discontinued (no endpoints); fall back to dolphin3.0
+        'cognitivecomputations/dolphin-mixtral-8x7b' => 'cognitivecomputations/dolphin3.0-mistral-24b',
         'josiefied-qwen3-8b'         => 'qwen/qwen3-8b',
         'josiefied/qwen3-8b'         => 'qwen/qwen3-8b',
     ];
@@ -344,8 +346,22 @@ function openrouter_model_key_candidates(string $modelKey): array
 function openrouter_is_invalid_model_id_error(Throwable $error): bool
 {
     $message = strtolower($error->getMessage());
-    return str_contains($message, 'returned http 400')
-        && (str_contains($message, 'not a valid model id') || str_contains($message, 'invalid model'));
+
+    // HTTP 400: "not a valid model ID" or "invalid model"
+    if (str_contains($message, 'returned http 400')
+        && (str_contains($message, 'not a valid model id') || str_contains($message, 'invalid model'))
+    ) {
+        return true;
+    }
+
+    // HTTP 404: "no endpoints found" — model exists but has no active providers
+    if (str_contains($message, 'returned http 404')
+        && str_contains($message, 'no endpoints found')
+    ) {
+        return true;
+    }
+
+    return false;
 }
 
 function xai_request_with_openrouter_model_fallback(
