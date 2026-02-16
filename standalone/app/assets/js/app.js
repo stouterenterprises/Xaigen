@@ -276,11 +276,6 @@ function setupGeneratorTabs(form){
     };
 
     typeInput.value = nextType;
-    tabs.forEach((tab) => {
-      const active = tab.getAttribute('data-generator-tab') === nextType;
-      tab.classList.toggle('is-active', active);
-      tab.setAttribute('aria-selected', String(active));
-    });
 
     promptInput.value = promptState[nextType].prompt || '';
     negativeInput.value = promptState[nextType].negative || '';
@@ -296,6 +291,12 @@ function setupGeneratorTabs(form){
     modeInput.value = isExtend ? 'extend' : 'create';
     const tabType = nextTab === 'extend' ? 'video' : nextTab;
     setType(tabType);
+
+    tabs.forEach((tab) => {
+      const active = tab.getAttribute('data-generator-tab') === nextTab;
+      tab.classList.toggle('is-active', active);
+      tab.setAttribute('aria-selected', String(active));
+    });
 
     document.querySelectorAll('.row-extend-only').forEach((row)=>row.classList.toggle('is-hidden', !isExtend));
     document.querySelectorAll('.row-standard-media').forEach((row)=>row.classList.toggle('is-hidden', isExtend));

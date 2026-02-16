@@ -229,6 +229,24 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
             $extraHint = ' OpenRouter returned 404 for ' . $endpoint . '. Confirm OPENROUTER_BASE_URL resolves to https://openrouter.ai/api/v1 and the selected model supports this generation endpoint.';
         }
 
+        if (
+            $provider === 'xai'
+            && strtoupper($method) === 'POST'
+            && $endpoint === '/videos/generations'
+            && $code === 403
+        ) {
+            $extraHint = ' xAI denied video generation for this key/account. Confirm your team has Grok video access enabled and sufficient credits.';
+        }
+
+        if (
+            $provider === 'xai'
+            && strtoupper($method) === 'POST'
+            && $endpoint === '/videos/generations'
+            && $code === 404
+        ) {
+            $extraHint = ' xAI could not find this video model for your account. Use an accessible model id (for example grok-video-latest) or update Admin → Models.';
+        }
+
         throw new RuntimeException(sprintf(
             '%s %s %s returned HTTP %d: %s%s',
             $providerLabel,

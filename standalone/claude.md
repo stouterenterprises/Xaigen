@@ -228,3 +228,8 @@ Negative prompt behavior:
 - `openrouter_is_invalid_model_id_error()` in `lib/xai.php` now also matches HTTP 404 "No endpoints found" responses (model exists but has no active providers), so the model-id fallback mechanism in `xai_request_with_openrouter_model_fallback()` can try alternative candidates instead of failing immediately.
 - `openrouter_model_key_candidates()` now maps deprecated `cognitivecomputations/dolphin-mixtral-8x7b` to `cognitivecomputations/dolphin3.0-mistral-24b` (the current Dolphin model with active providers on OpenRouter); the `dolphin-2.5-mixtral` shorthand mappings also point to the new model.
 - Migration `0014_fix_deprecated_dolphin_model.sql` updates stored `model_key` and `display_name` for existing Dolphin Mixtral 8x7b rows to `cognitivecomputations/dolphin3.0-mistral-24b` / `Dolphin 3.0 Mistral 24B` so the deprecated model is no longer selected by default.
+
+
+- Generator tab behavior now treats **Extend** as its own active tab (while still forcing the underlying generation type to `video`), so clicking Extend no longer also highlights the Video tab.
+- Installer default xAI video model seed was updated from `grok-2-video` to `grok-video-latest` (`Grok Video (Latest)`), and migration `0015_update_xai_grok_video_default_model.sql` upgrades existing xAI video model rows from the old key.
+- `lib/xai.php` now appends explicit xAI video hints on `POST /videos/generations` failures: HTTP 403 suggests missing Grok video entitlement/credits; HTTP 404 suggests updating to an accessible video model id such as `grok-video-latest`.
