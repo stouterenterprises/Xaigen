@@ -28,7 +28,7 @@ if($_SERVER['REQUEST_METHOD']==='POST'){
 
     $models = [
       ['image','grok-2-image','Grok 2 Image',1,1],
-      ['video','grok-2-video','Grok 2 Video',1,1],
+      ['video','grok-video-latest','Grok Video (Latest)',1,1],
     ];
     foreach($models as $m){
       db()->prepare('INSERT INTO models (id,type,model_key,display_name,supports_negative_prompt,is_active,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?)')
