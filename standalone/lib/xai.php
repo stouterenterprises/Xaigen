@@ -232,7 +232,7 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
         if (
             $provider === 'xai'
             && strtoupper($method) === 'POST'
-            && $endpoint === '/videos/generations'
+            && ($endpoint === '/video/generations' || $endpoint === '/videos/generations')
             && $code === 403
         ) {
             $extraHint = ' xAI denied video generation for this key/account. Confirm your team has Grok video access enabled and sufficient credits.';
@@ -241,7 +241,7 @@ function xai_request(string $method, string $endpoint, array $payload, array $ap
         if (
             $provider === 'xai'
             && strtoupper($method) === 'POST'
-            && $endpoint === '/videos/generations'
+            && ($endpoint === '/video/generations' || $endpoint === '/videos/generations')
             && $code === 404
         ) {
             $extraHint = ' xAI could not find this video model for your account. Use an accessible model id (for example grok-video-latest) or update Admin → Models.';
@@ -326,10 +326,7 @@ function openrouter_model_key_candidates(string $modelKey): array
     $knownMappings = [
         'nous-hermes-2-mixtral-8x7b'  => 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
         'nous/hermes-2-mixtral-8x7b'  => 'nousresearch/nous-hermes-2-mixtral-8x7b-dpo',
-        'dolphin-2.5-mixtral'         => 'cognitivecomputations/dolphin3.0-mistral-24b',
-        'dolphin/2.5-mixtral'         => 'cognitivecomputations/dolphin3.0-mistral-24b',
-        // dolphin-mixtral-8x7b has been discontinued (no endpoints); fall back to dolphin3.0
-        'cognitivecomputations/dolphin-mixtral-8x7b' => 'cognitivecomputations/dolphin3.0-mistral-24b',
+        // dolphin3.0-mistral-24b has no active endpoints on OpenRouter; do not fall back to it
         'josiefied-qwen3-8b'         => 'qwen/qwen3-8b',
         'josiefied/qwen3-8b'         => 'qwen/qwen3-8b',
     ];
@@ -596,11 +593,13 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
         return generate_openrouter_chat_bridge($job, $apiSettings, $prompt, $negativePrompt, 'video');
     }
 
-    assert_openrouter_media_model_supported($apiSettings, $job, '/videos/generations');
+    // xAI uses /video/generations (singular); OpenRouter uses /videos/generations (plural)
+    $videoPostEndpoint = $apiSettings['provider'] === 'openrouter' ? '/videos/generations' : '/video/generations';
+    assert_openrouter_media_model_supported($apiSettings, $job, $videoPostEndpoint);
     try {
         return xai_request_with_openrouter_model_fallback(
             'POST',
-            '/videos/generations',
+            $videoPostEndpoint,
             $payload,
             $apiSettings,
             openrouter_model_key_candidates((string) $payload['model'])
@@ -625,7 +624,7 @@ function generate_video(array $job, bool $supportsNegativePrompt, array $model):
             $payload['model'] = $fallback;
             $attemptedFallbacks[] = $fallback;
             try {
-                return xai_request('POST', '/videos/generations', $payload, $apiSettings);
+                return xai_request('POST', $videoPostEndpoint, $payload, $apiSettings);
             } catch (RuntimeException $retryError) {
                 $lastRetryError = $retryError;
                 if (!should_retry_video_model_with_fallback($retryError, $apiSettings, $fallback)) {
@@ -793,16 +792,17 @@ function poll_job(string $externalJobId, array $model = []): array
 
     $fallbackEndpoints = [];
     if ($modelType === 'video') {
-        $fallbackEndpoints[] = '/videos/generations/' . $jobId;
+        // xAI uses /video/generations/{id} (singular); try it first, then the plural form
         $fallbackEndpoints[] = '/video/generations/' . $jobId;
+        $fallbackEndpoints[] = '/videos/generations/' . $jobId;
         $fallbackEndpoints[] = '/generations/' . $jobId;
     } elseif ($modelType === 'image') {
         $fallbackEndpoints[] = '/images/generations/' . $jobId;
         $fallbackEndpoints[] = '/image/generations/' . $jobId;
         $fallbackEndpoints[] = '/generations/' . $jobId;
     } else {
-        $fallbackEndpoints[] = '/videos/generations/' . $jobId;
         $fallbackEndpoints[] = '/video/generations/' . $jobId;
+        $fallbackEndpoints[] = '/videos/generations/' . $jobId;
         $fallbackEndpoints[] = '/images/generations/' . $jobId;
         $fallbackEndpoints[] = '/image/generations/' . $jobId;
         $fallbackEndpoints[] = '/generations/' . $jobId;
