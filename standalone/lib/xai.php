@@ -490,6 +490,52 @@ function generate_openrouter_chat_bridge(
     return $response;
 }
 
+function openrouter_image_size_from_params(array $params): string
+{
+    // Map aspect_ratio + resolution to a standard OpenAI-style size string.
+    $aspectRatio = trim((string) ($params['aspect_ratio'] ?? '1:1'));
+    $resolution = strtolower(trim((string) ($params['resolution'] ?? '')));
+    $is2k = ($resolution === '2k' || $resolution === '2048' || str_contains($resolution, '2048'));
+
+    $base = $is2k ? 2048 : 1024;
+
+    // Common aspect ratio → size mappings
+    $ratioMap = [
+        '1:1'  => [$base, $base],
+        '16:9' => [$is2k ? 2048 : 1792, $is2k ? 1152 : 1024],
+        '9:16' => [$is2k ? 1152 : 1024, $is2k ? 2048 : 1792],
+        '4:3'  => [$is2k ? 2048 : 1024, $is2k ? 1536 : 768],
+        '3:4'  => [$is2k ? 1536 : 768, $is2k ? 2048 : 1024],
+        '3:2'  => [$is2k ? 2048 : 1216, $is2k ? 1365 : 832],
+        '2:3'  => [$is2k ? 1365 : 832, $is2k ? 2048 : 1216],
+    ];
+
+    [$w, $h] = $ratioMap[$aspectRatio] ?? [$base, $base];
+    return $w . 'x' . $h;
+}
+
+function openrouter_image_payload(array $xaiPayload, array $params): array
+{
+    // Build a payload that OpenRouter image models understand.
+    // OpenRouter proxies to providers that use OpenAI-compatible parameters;
+    // xAI-specific fields like resolution ('1k'/'2k') are not understood there.
+    $payload = array_filter([
+        'model'           => $xaiPayload['model'] ?? null,
+        'prompt'          => $xaiPayload['prompt'] ?? null,
+        'negative_prompt' => ($xaiPayload['negative_prompt'] ?? '') !== '' ? $xaiPayload['negative_prompt'] : null,
+        'n'               => 1,
+        'size'            => openrouter_image_size_from_params($params),
+        'seed'            => isset($xaiPayload['seed']) ? (int) $xaiPayload['seed'] : null,
+    ], static fn($v) => $v !== null && $v !== '');
+
+    // Pass through input image reference if present (image-to-image); field name varies by model.
+    if (!empty($xaiPayload['image_url'])) {
+        $payload['image_url'] = $xaiPayload['image_url'];
+    }
+
+    return $payload;
+}
+
 function generate_image(array $job, bool $supportsNegativePrompt, array $model): array
 {
     $params = json_decode((string) $job['params_json'], true) ?: [];
@@ -520,6 +566,12 @@ function generate_image(array $job, bool $supportsNegativePrompt, array $model):
     }
 
     assert_openrouter_media_model_supported($apiSettings, $job, '/images/generations');
+
+    // OpenRouter image models use standard OpenAI image parameters; strip xAI-specific fields.
+    if ($apiSettings['provider'] === 'openrouter') {
+        $payload = openrouter_image_payload($payload, $params);
+    }
+
     return xai_request_with_openrouter_model_fallback(
         'POST',
         '/images/generations',
@@ -662,7 +714,10 @@ function should_retry_video_model_with_fallback(RuntimeException $error, array $
 
     return str_contains($message, 'does not exist or your team')
         || str_contains($message, 'model does not exist')
-        || str_contains($message, 'model_not_found');
+        || str_contains($message, 'model_not_found')
+        // xAI returns "The requested resource was not found" for inaccessible video models
+        || str_contains($message, 'requested resource was not found')
+        || str_contains($message, 'resource was not found');
 }
 
 function resolve_video_model_fallback_candidates(string $requestedModelKey, array $apiSettings): array
